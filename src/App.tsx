@@ -2,20 +2,14 @@ import './App.css'
 import Navbar from '@/components/layout/Navbar'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
-import { Route, Routes } from 'react-router-dom'
-import { useAuth } from '@/context/AuthProvider'
-import { ChartBarInteractive } from '@/components/charts/ChartBarInteractive'
+import { Route, Routes, Navigate } from 'react-router-dom'
 import Admin from '@/pages/Admin'
 
 function Home() {
-  const { user } = useAuth()
   return (
     <div className="mx-auto max-w-4xl p-6">
       <h1 className="text-3xl font-bold">Главная</h1>
-      <p className="text-muted-foreground mt-2">{user ? `Привет, ${user.name}` : 'Вы не авторизованы'}</p>
-      <div className="mt-6">
-        <ChartBarInteractive />
-      </div>
+      <p className="text-muted-foreground mt-2">Это главная страница</p>
     </div>
   )
 }
@@ -29,6 +23,7 @@ function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   )
