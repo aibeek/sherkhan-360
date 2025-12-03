@@ -8,8 +8,9 @@ import Admin from '@/pages/Admin'
 function Home() {
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <h1 className="text-3xl font-bold">Главная</h1>
-      <p className="text-muted-foreground mt-2">Это главная страница</p>
+      <h1 className="text-3xl font-bold">Sherkhan 360</h1>
+      <p className="text-muted-foreground mt-2">Умные устройства для повышения эффективности предприятия и безопасности сотрудников</p>
+      <img src="src/assets/main.jpeg" alt="Главное изображение" className="mt-6 w-full max-w-3xl rounded-lg border" />
     </div>
   )
 }

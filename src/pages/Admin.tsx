@@ -58,7 +58,12 @@ function SectionHeader({ title, open, onClick }: { title: string; open: boolean;
 
 function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: () => void }) {
   return (
-    <button data-active={active} onClick={onClick} className="data-[active=true]:bg-brand/10 data-[active=true]:text-brand flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm bg-background hover:bg-muted">
+    <button
+      data-active={active}
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm bg-background hover:bg-muted
+                 data-[active=true]:bg-muted data-[active=true]:border data-[active=true]:border-brand data-[active=true]:font-semibold"
+    >
       <span className="inline-flex h-4 w-4 items-center justify-center">{icon}</span>
       <span className="truncate">{label}</span>
     </button>
