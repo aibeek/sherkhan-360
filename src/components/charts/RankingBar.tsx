@@ -1,5 +1,5 @@
 import * as React from "react"
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
