@@ -6,6 +6,7 @@ import { Route, Routes, Navigate } from 'react-router-dom'
 import Admin from '@/pages/Admin'
 import HealthDashboard from '@/pages/HealthDashboard'
 import mainImage from '@/assets/main.jpeg'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 function Home() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <SpeedInsights />
     </div>
   )
 }
