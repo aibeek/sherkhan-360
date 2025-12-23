@@ -2,11 +2,7 @@ import * as React from 'react'
 import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { PieActivity } from '@/components/charts/PieActivity'
-import { RankingBar } from '@/components/charts/RankingBar'
 import { useAuth } from '@/context/AuthProvider'
 import {
   getBloodOxygenMetrics,
@@ -29,10 +25,10 @@ function Sidebar({ active, setActive }: { active: string; setActive: (v: string)
   const [openHealth, setOpenHealth] = useState(true)
   return (
     <aside className="w-64 shrink-0 border-r bg-background">
-      <div className="p-4">
+      <div className="p-4 pt-2 border-b">
         <div className="text-lg font-semibold">Админ панель</div>
       </div>
-      <nav className="px-3 pb-4 space-y-2">
+      <nav className="px-3 py-4 space-y-2">
         <SectionHeader onClick={() => setOpenHealth(v => !v)} open={openHealth} title="Мониторинг здоровья" />
         {openHealth && (
           <div className="space-y-1">
@@ -76,26 +72,6 @@ function PressureIcon() { return <IconBase className="h-4 w-4"><path d="M12 2v20
 function SugarIcon() { return <IconBase className="h-4 w-4"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 12V6" /><path d="M12 12h6" /></IconBase> }
 function TempIcon() { return <IconBase className="h-4 w-4"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" /></IconBase> }
 function StepsIcon() { return <IconBase className="h-4 w-4"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16" /><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20" /></IconBase> }
-
-function Toolbar() {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <select className="h-9 rounded-md border bg-background px-2 text-sm">
-        <option>Бригада</option>
-        <option>Бригада 1</option>
-        <option>Бригада 2</option>
-      </select>
-      <input type="date" className="h-9 rounded-md border bg-background px-2 text-sm" />
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" className="accent-foreground" defaultChecked /> С учётом рабочего дня
-      </label>
-      <div className="ml-auto flex items-center gap-2">
-        <Input placeholder="Быстрый поиск" className="w-64" />
-        <Button className="h-9">Найти</Button>
-      </div>
-    </div>
-  )
-}
 
 // Все данные здоровья на одной странице
 function HealthAllView({ 
@@ -397,50 +373,9 @@ function HealthAllView({
   )
 }
 
-function AnalyticsView() {
-  return (
-    <>
-      <Card>
-        <CardContent className="p-4">
-          <Toolbar />
-        </CardContent>
-      </Card>
-
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <PieActivity />
-        <RankingBar />
-      </div>
-
-      <Card className="mt-6">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Статистика эффективности</CardTitle>
-          <CardDescription>Ключевые метрики</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 text-sm">
-            <Metric title="Эффективная длительность смены" value="08 ч 44 мин" />
-            <Metric title="Время неэффективности за смену" value="02 ч 12 мин" />
-            <Metric title="Среднее время перемещения за смену" value="00 ч 38 мин" />
-            <Metric title="Активная работа за смену" value="05 ч 54 мин" />
-          </div>
-        </CardContent>
-      </Card>
-    </>
-  )
-}
-
-function Metric({ title, value }: { title: string; value: string }) {
-  return (
-    <div className="rounded-lg border bg-card p-4">
-      <div className="text-muted-foreground">{title}</div>
-      <div className="mt-1 text-lg font-semibold">{value}</div>
-    </div>
-  )
-}
-
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
-  const [active, setActive] = useState('analytics')
+  const [active, setActive] = useState('health-all')
   
   // Health data states
   const [heartData, setHeartData] = useState<HeartRateMetric[]>([])
@@ -544,28 +479,17 @@ export default function Admin() {
             </CardContent>
           </Card>
         )
-      case 'analytics':
-        return <AnalyticsView />
-      default:
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Раздел в разработке</CardTitle>
-              <CardDescription>Этот раздел скоро будет доступен</CardDescription>
-            </CardHeader>
-          </Card>
-        )
     }
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <aside className="fixed left-0 top-14 bottom-0 w-64 border-r bg-background">
+      <aside className="fixed left-0 top-16 bottom-0 w-64 border-r bg-background">
         <ScrollArea className="h-full">
           <Sidebar active={active} setActive={setActive} />
         </ScrollArea>
       </aside>
-      <main className="pl-64">
+      <main className="pl-64 pt-2">
         <div className="p-6 max-w-7xl">
           {renderContent()}
         </div>
