@@ -75,7 +75,7 @@ function StepsIcon() { return <IconBase className="h-4 w-4"><path d="M4 16v-2.38
 
 // Все данные здоровья на одной странице
 function HealthAllView({ 
-  heartData, oxygenData, pressureData, sugarData, tempData, stepsData, devices, loading 
+  heartData, oxygenData, pressureData, sugarData, tempData, stepsData, devices, loading, selectedDevice, setSelectedDevice 
 }: { 
   heartData: HeartRateMetric[]
   oxygenData: BloodOxygenMetric[]
@@ -85,12 +85,41 @@ function HealthAllView({
   stepsData: StepsMetric[]
   devices: Device[]
   loading: boolean
+  selectedDevice: string
+  setSelectedDevice: (id: string) => void
 }) {
   if (loading) return <div className="p-6">Загрузка данных...</div>
+
+  // Фильтрация данных по выбранному устройству
+  const filteredHeart = selectedDevice === 'all' ? heartData : heartData.filter(d => d.device_id === selectedDevice)
+  const filteredOxygen = selectedDevice === 'all' ? oxygenData : oxygenData.filter(d => d.device_id === selectedDevice)
+  const filteredPressure = selectedDevice === 'all' ? pressureData : pressureData.filter(d => d.device_id === selectedDevice)
+  const filteredSugar = selectedDevice === 'all' ? sugarData : sugarData.filter(d => d.device_id === selectedDevice)
+  const filteredTemp = selectedDevice === 'all' ? tempData : tempData.filter(d => d.device_id === selectedDevice)
+  const filteredSteps = selectedDevice === 'all' ? stepsData : stepsData.filter(d => d.device_id === selectedDevice)
   
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Мониторинг здоровья</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Мониторинг здоровья</h1>
+        
+        {/* Фильтр по устройству */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-muted-foreground">Устройство:</label>
+          <select 
+            value={selectedDevice} 
+            onChange={(e) => setSelectedDevice(e.target.value)}
+            className="px-3 py-2 border rounded-md bg-background text-sm min-w-[200px]"
+          >
+            <option value="all">Все устройства ({devices.length})</option>
+            {devices.map(device => (
+              <option key={device.id} value={device.id}>
+                {device.name} ({device.mac_address})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       
       {/* Статистика */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
@@ -98,60 +127,60 @@ function HealthAllView({
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <HeartIcon />
-              <span className="text-2xl font-bold text-red-500">{heartData.length}</span>
+              <span className="text-2xl font-bold text-red-500">{filteredHeart.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей пульса</div>
-            {heartData[0] && <div className="text-sm mt-1">{heartData[0].heart_rate} уд/мин</div>}
+            {filteredHeart[0] && <div className="text-sm mt-1">{filteredHeart[0].heart_rate} уд/мин</div>}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <OxygenIcon />
-              <span className="text-2xl font-bold text-blue-500">{oxygenData.length}</span>
+              <span className="text-2xl font-bold text-blue-500">{filteredOxygen.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей O₂</div>
-            {oxygenData[0] && <div className="text-sm mt-1">{oxygenData[0].oxygen_saturation}%</div>}
+            {filteredOxygen[0] && <div className="text-sm mt-1">{filteredOxygen[0].oxygen_saturation}%</div>}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <PressureIcon />
-              <span className="text-2xl font-bold text-purple-500">{pressureData.length}</span>
+              <span className="text-2xl font-bold text-purple-500">{filteredPressure.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей давления</div>
-            {pressureData[0] && <div className="text-sm mt-1">{pressureData[0].systolic}/{pressureData[0].diastolic}</div>}
+            {filteredPressure[0] && <div className="text-sm mt-1">{filteredPressure[0].systolic}/{filteredPressure[0].diastolic}</div>}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <SugarIcon />
-              <span className="text-2xl font-bold text-pink-500">{sugarData.length}</span>
+              <span className="text-2xl font-bold text-pink-500">{filteredSugar.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей сахара</div>
-            {sugarData[0] && <div className="text-sm mt-1">{sugarData[0].blood_sugar} мг/дл</div>}
+            {filteredSugar[0] && <div className="text-sm mt-1">{filteredSugar[0].blood_sugar} мг/дл</div>}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <TempIcon />
-              <span className="text-2xl font-bold text-orange-500">{tempData.length}</span>
+              <span className="text-2xl font-bold text-orange-500">{filteredTemp.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей темп.</div>
-            {tempData[0] && <div className="text-sm mt-1">{tempData[0].temperature.toFixed(1)}°C</div>}
+            {filteredTemp[0] && <div className="text-sm mt-1">{filteredTemp[0].temperature.toFixed(1)}°C</div>}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <StepsIcon />
-              <span className="text-2xl font-bold text-green-500">{stepsData.length}</span>
+              <span className="text-2xl font-bold text-green-500">{filteredSteps.length}</span>
             </div>
             <div className="text-xs text-muted-foreground">Записей шагов</div>
-            {stepsData[0] && <div className="text-sm mt-1">{stepsData[0].steps} шагов</div>}
+            {filteredSteps[0] && <div className="text-sm mt-1">{filteredSteps[0].steps} шагов</div>}
           </CardContent>
         </Card>
         <Card>
@@ -183,7 +212,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {heartData.map(row => (
+                  {filteredHeart.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.heart_rate} уд/мин</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
@@ -210,7 +239,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {oxygenData.map(row => (
+                  {filteredOxygen.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.oxygen_saturation}%</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
@@ -238,7 +267,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {pressureData.map(row => (
+                  {filteredPressure.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.systolic}</td>
                       <td className="p-2 font-semibold">{row.diastolic}</td>
@@ -266,7 +295,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {sugarData.map(row => (
+                  {filteredSugar.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.blood_sugar} мг/дл</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
@@ -293,7 +322,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {tempData.map(row => (
+                  {filteredTemp.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.temperature.toFixed(1)}°C</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
@@ -321,7 +350,7 @@ function HealthAllView({
                   </tr>
                 </thead>
                 <tbody>
-                  {stepsData.map(row => (
+                  {filteredSteps.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
                       <td className="p-2 font-semibold">{row.steps}</td>
                       <td className="p-2">{row.calories}</td>
@@ -376,6 +405,7 @@ function HealthAllView({
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
   const [active, setActive] = useState('health-all')
+  const [selectedDevice, setSelectedDevice] = useState('all')
   
   // Health data states
   const [heartData, setHeartData] = useState<HeartRateMetric[]>([])
@@ -441,6 +471,8 @@ export default function Admin() {
           stepsData={stepsData}
           devices={devices}
           loading={loading}
+          selectedDevice={selectedDevice}
+          setSelectedDevice={setSelectedDevice}
         />
       case 'ww-watch':
         return (
