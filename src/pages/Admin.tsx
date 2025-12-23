@@ -68,13 +68,6 @@ function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; labe
 }
 
 function IconBase(props: React.SVGProps<SVGSVGElement>) { return <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props} /> }
-function ClockIcon() { return <IconBase className="h-4 w-4"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></IconBase> }
-function UsersIcon() { return <IconBase className="h-4 w-4"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8a4 4 0 1 1-8 0" /></IconBase> }
-function CalendarIcon() { return <IconBase className="h-4 w-4"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></IconBase> }
-function PieChartIcon() { return <IconBase className="h-4 w-4"><path d="M12 12V3a9 9 0 1 1-9 9h9" /></IconBase> }
-function FileTextIcon() { return <IconBase className="h-4 w-4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></IconBase> }
-function TableIcon() { return <IconBase className="h-4 w-4"><rect x="3" y="4" width="18" height="16" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="9" y1="4" x2="9" y2="20" /><line x1="15" y1="4" x2="15" y2="20" /></IconBase> }
-function SettingsIcon() { return <IconBase className="h-4 w-4"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></IconBase> }
 function WatchIcon() { return <IconBase className="h-4 w-4"><rect x="7" y="6" width="10" height="12" rx="2" /><rect x="9" y="8" width="6" height="8" rx="1" /></IconBase> }
 function ChevronDownIcon({ className }: { className?: string }) { return <IconBase className={className}><polyline points="6 9 12 15 18 9" /></IconBase> }
 function HeartIcon() { return <IconBase className="h-4 w-4"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" /></IconBase> }
@@ -101,250 +94,6 @@ function Toolbar() {
         <Button className="h-9">Найти</Button>
       </div>
     </div>
-  )
-}
-
-// Компоненты для отображения данных здоровья
-function HeartRateView({ data }: { data: HeartRateMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>❤️ Пульс</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Пульс</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.heart_rate} уд/мин</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function OxygenView({ data }: { data: BloodOxygenMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>🫁 Кислород в крови</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">O₂ %</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.oxygen_saturation}%</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function PressureView({ data }: { data: BloodPressureMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>💉 Давление</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Систолическое</th>
-                <th className="text-left p-2">Диастолическое</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.systolic}</td>
-                  <td className="p-2 font-semibold">{row.diastolic}</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function SugarView({ data }: { data: BloodSugarMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>🍬 Сахар в крови</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Уровень</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.blood_sugar} мг/дл</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function TemperatureView({ data }: { data: TemperatureMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>🌡️ Температура</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Температура</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.temperature.toFixed(1)}°C</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function StepsView({ data }: { data: StepsMetric[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>👟 Шаги</CardTitle>
-        <CardDescription>Всего записей: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Шаги</th>
-                <th className="text-left p-2">Калории</th>
-                <th className="text-left p-2">Дистанция</th>
-                <th className="text-left p-2">Время</th>
-                <th className="text-left p-2">User ID</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.steps}</td>
-                  <td className="p-2">{row.calories} ккал</td>
-                  <td className="p-2">{row.distance} м</td>
-                  <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
-                  <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function DevicesView({ data }: { data: Device[] }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>📱 Устройства</CardTitle>
-        <CardDescription>Всего устройств: {data.length}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-auto max-h-96">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background">
-              <tr className="border-b">
-                <th className="text-left p-2">Название</th>
-                <th className="text-left p-2">MAC</th>
-                <th className="text-left p-2">Статус</th>
-                <th className="text-left p-2">Последняя синхр.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map(row => (
-                <tr key={row.id} className="border-b hover:bg-muted/50">
-                  <td className="p-2 font-semibold">{row.name}</td>
-                  <td className="p-2 font-mono text-xs">{row.mac_address}</td>
-                  <td className="p-2">
-                    <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {row.is_connected ? 'Подключено' : 'Отключено'}
-                    </span>
-                  </td>
-                  <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
 
@@ -759,7 +508,42 @@ export default function Admin() {
           loading={loading}
         />
       case 'ww-watch':
-        return <DevicesView data={devices} />
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Часы WW</CardTitle>
+              <CardDescription>Всего устройств: {devices.length}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-96">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2">Название</th>
+                      <th className="text-left p-2">MAC</th>
+                      <th className="text-left p-2">Статус</th>
+                      <th className="text-left p-2">Последняя синхр.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {devices.map(row => (
+                      <tr key={row.id} className="border-b hover:bg-muted/50">
+                        <td className="p-2 font-semibold">{row.name}</td>
+                        <td className="p-2 font-mono text-xs">{row.mac_address}</td>
+                        <td className="p-2">
+                          <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            {row.is_connected ? 'Подключено' : 'Отключено'}
+                          </span>
+                        </td>
+                        <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        )
       case 'analytics':
         return <AnalyticsView />
       default:
