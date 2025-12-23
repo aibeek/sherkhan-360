@@ -4,6 +4,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import { Route, Routes, Navigate } from 'react-router-dom'
 import Admin from '@/pages/Admin'
+import HealthDashboard from '@/pages/HealthDashboard'
 import mainImage from '@/assets/main.jpeg'
 
 function Home() {
@@ -22,6 +23,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/health" element={<HealthDashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="*" element={<Navigate to="/" replace />} />
