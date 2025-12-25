@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -29,10 +29,11 @@ function Sidebar({ active, setActive }: { active: string; setActive: (v: string)
         <div className="text-lg font-semibold">Админ панель</div>
       </div>
       <nav className="px-3 py-4 space-y-2">
-        <SectionHeader onClick={() => setOpenHealth(v => !v)} open={openHealth} title="Мониторинг здоровья" />
+        <SectionHeader onClick={() => setOpenHealth(v => !v)} open={openHealth} title="Все данные" />
         {openHealth && (
           <div className="space-y-1">
-            <NavItem icon={<HeartIcon />} label="Все данные" active={active==='health-all'} onClick={() => setActive('health-all')} />
+            <NavItem icon={<WatchIcon />} label="Эффективность" active={active==='health-efficiency'} onClick={() => setActive('health-efficiency')} />
+            <NavItem icon={<HeartIcon />} label="Здоровья" active={active==='health-all'} onClick={() => setActive('health-all')} />
           </div>
         )}
       </nav>
@@ -417,6 +418,97 @@ export default function Admin() {
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(false)
 
+  // --- Mock monitoring efficiency data (temporary) ---
+  const [rangeFrom, setRangeFrom] = useState<string>(() => new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0,10))
+  const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0,10))
+  const [selectedObject, setSelectedObject] = useState<string>('all')
+
+  const monitoringSpec = useMemo(() => ({
+    specialties: [
+      { name: 'Бетонщик', hr0: 135, stepsPerHour: 1100 },
+      { name: 'Арматурщик', hr0: 130, stepsPerHour: 1000 },
+      { name: 'Каменщик', hr0: 125, stepsPerHour: 850 },
+      { name: 'Монтажник', hr0: 138, stepsPerHour: 1150 },
+      { name: 'Дорожный рабочий', hr0: 143, stepsPerHour: 1250 },
+      { name: 'Разнорабочий', hr0: 130, stepsPerHour: 1100 }
+    ]
+  }), [])
+
+  const mockObjects = useMemo(() => [
+    { id: 'o1', name: 'Akbulak Riviera', city: 'Астана'},
+    { id: 'o2', name: 'Europe City', city: 'Астана'},
+    { id: 'o3', name: 'Ellington Hills', city: 'Астана' },
+    { id: 'o4', name: 'The ONE', city: 'Астана'}
+  ], []) as any[]
+
+  const mockWorkers = useMemo(() => [
+    // efficient on o1
+    { id: 'w1', name: 'Иванов И.', spec: 'Бетонщик', avgHr: 140, stepsPerHour: 1050, objectId: 'o1' },
+    // not efficient on o1 (low steps / elevated HR)
+    { id: 'w2', name: 'Петров П.', spec: 'Арматурщик', avgHr: 150, stepsPerHour: 800, objectId: 'o1' },
+    // efficient on o2
+    { id: 'w3', name: 'Сидоров С.', spec: 'Каменщик', avgHr: 130, stepsPerHour: 870, objectId: 'o2' },
+    // not efficient on o3 (lower steps)
+    { id: 'w4', name: 'Кузнецов К.', spec: 'Монтажник', avgHr: 155, stepsPerHour: 900, objectId: 'o3' },
+    // efficient on o2
+    { id: 'w5', name: 'Морозов М.', spec: 'Дорожный рабочий', avgHr: 145, stepsPerHour: 1200, objectId: 'o2' },
+    // not efficient on o4 (high HR, low steps)
+    { id: 'w6', name: 'Новиков Н.', spec: 'Разнорабочий', avgHr: 160, stepsPerHour: 700, objectId: 'o4' }
+  ], [])
+
+  const specMetrics = useMemo(() => {
+    return monitoringSpec.specialties.map(s => {
+      const workers = mockWorkers.filter(w => w.spec === s.name && (selectedObject === 'all' || w.objectId === selectedObject))
+      const avgHr = workers.length ? Math.round(workers.reduce((acc, w) => acc + w.avgHr, 0) / workers.length) : 0
+      const avgSteps = workers.length ? Math.round(workers.reduce((acc, w) => acc + w.stepsPerHour, 0) / workers.length) : 0
+      const hrDiff = avgHr ? avgHr - s.hr0 : 0
+      const hrScore = s.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / s.hr0 * 100) : 0
+      const stepsScore = s.stepsPerHour ? Math.min(100, Math.round((avgSteps / s.stepsPerHour) * 100)) : 0
+      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
+      return {
+        name: s.name,
+        expectedHr: s.hr0,
+        expectedSteps: s.stepsPerHour,
+        avgHr,
+        avgSteps,
+        hrDiff,
+        efficiency
+      }
+    })
+  }, [monitoringSpec, mockWorkers, selectedObject])
+
+  // Compute per-worker efficiency and status
+  const workersWithStatus = useMemo(() => {
+    return mockWorkers.map(w => {
+      const spec = monitoringSpec.specialties.find(s => s.name === w.spec)
+      if (!spec) return { ...w, efficiency: 0, isEfficient: false }
+      const hrDiff = w.avgHr - spec.hr0
+      const hrScore = spec.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / spec.hr0 * 100) : 0
+      const stepsScore = spec.stepsPerHour ? Math.min(100, Math.round((w.stepsPerHour / spec.stepsPerHour) * 100)) : 0
+      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
+      return { ...w, efficiency, isEfficient: efficiency >= 90 }
+    })
+  }, [mockWorkers, monitoringSpec])
+
+  // Export workers to CSV (opens in Excel)
+  const exportWorkersToCsv = (rows: any[]) => {
+    const headers = ['ID','ФИО','Специальность','Пульс','Шаг/ч','Объект','Статус','Эффективность']
+    const lines = rows.map(r => {
+      const objectName = mockObjects.find(o => o.id === r.objectId)?.name || '-'
+      const cols = [r.id, r.name, r.spec, r.avgHr, r.stepsPerHour, objectName, r.isEfficient ? 'Эффективный' : 'Неэффективный', r.efficiency]
+      return cols.map((v: any) => `"${String(v ?? '')}"`).join(';')
+    })
+    const csv = [headers.join(';'), ...lines].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const namePart = selectedObject === 'all' ? 'all_objects' : selectedObject
+    a.href = url
+    a.download = `workers_${namePart}_${rangeFrom}_${rangeTo}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   // Загрузка данных при переключении раздела
   useEffect(() => {
     async function loadData() {
@@ -474,6 +566,84 @@ export default function Admin() {
           selectedDevice={selectedDevice}
           setSelectedDevice={setSelectedDevice}
         />
+      case 'health-efficiency':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold">Мониторинг эффективности</h1>
+              <div className="flex items-center gap-3">
+                <label className="text-sm text-muted-foreground">Период:</label>
+                <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="px-2 py-1 border rounded bg-white text-black" />
+                <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="px-2 py-1 border rounded bg-white text-black" />
+                <label className="text-sm text-muted-foreground">Объект:</label>
+                <select value={selectedObject} onChange={e => setSelectedObject(e.target.value)} className="px-3 py-1 border rounded bg-background">
+                  <option value="all">Все объекты</option>
+                  {mockObjects.map(o => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+                  <button
+                    onClick={() => exportWorkersToCsv(workersWithStatus.filter(w => selectedObject === 'all' ? true : w.objectId === selectedObject))}
+                    className="ml-2 inline-flex items-center gap-2 px-3 py-1 border rounded bg-white text-sm hover:bg-green-50"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M3 9h18" />
+                      <path d="M8 13v4" />
+                      <path d="M12 13v4" />
+                      <path d="M16 13v4" />
+                    </svg>
+                    Выгрузить Excel
+                  </button>
+              </div>
+            </div>
+
+            {/* removed specMetrics card as requested */}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Список тестовых работников</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">ID</th>
+                        <th className="text-left p-2">ФИО</th>
+                        <th className="text-left p-2">Специальность</th>
+                        <th className="text-left p-2">Пульс</th>
+                        <th className="text-left p-2">Шаг/ч</th>
+                        <th className="text-left p-2">Объект</th>
+                        <th className="text-left p-2">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {workersWithStatus.map(w => (
+                        <tr key={w.id} className="border-b">
+                          <td className="p-2 font-mono text-xs">{w.id}</td>
+                          <td className="p-2">{w.name}</td>
+                          <td className="p-2">{w.spec}</td>
+                          <td className="p-2 font-mono">{w.avgHr}</td>
+                          <td className="p-2 font-mono">{w.stepsPerHour}</td>
+                          <td className="p-2">{mockObjects.find(o => o.id === w.objectId)?.name || '-'}</td>
+                          <td className="p-2">
+                            {w.isEfficient ? (
+                              <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-semibold">Эффективный</span>
+                            ) : (
+                              <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-semibold">Неэффективный</span>
+                            )}
+                            <div className="text-xs text-muted-foreground mt-1">{w.efficiency}%</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
       case 'ww-watch':
         return (
           <Card>
