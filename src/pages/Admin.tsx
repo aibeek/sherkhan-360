@@ -33,7 +33,7 @@ function Sidebar({ active, setActive }: { active: string; setActive: (v: string)
         {openHealth && (
           <div className="space-y-1">
             <NavItem icon={<WatchIcon />} label="Эффективность" active={active==='health-efficiency'} onClick={() => setActive('health-efficiency')} />
-            <NavItem icon={<HeartIcon />} label="Здоровья" active={active==='health-all'} onClick={() => setActive('health-all')} />
+            <NavItem icon={<HeartIcon />} label="Здоровье" active={active==='health-all'} onClick={() => setActive('health-all')} />
           </div>
         )}
       </nav>
@@ -76,7 +76,7 @@ function StepsIcon() { return <IconBase className="h-4 w-4"><path d="M4 16v-2.38
 
 // Все данные здоровья на одной странице
 function HealthAllView({ 
-  heartData, oxygenData, pressureData, sugarData, tempData, stepsData, devices, loading, selectedDevice, setSelectedDevice 
+  heartData, oxygenData, pressureData, sugarData, tempData, stepsData, devices, loading, selectedDevice, setSelectedDevice
 }: { 
   heartData: HeartRateMetric[]
   oxygenData: BloodOxygenMetric[]
@@ -103,9 +103,7 @@ function HealthAllView({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Мониторинг здоровья</h1>
-        
-        {/* Фильтр по устройству */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <label className="text-sm text-muted-foreground">Устройство:</label>
           <select 
             value={selectedDevice} 
@@ -421,7 +419,8 @@ export default function Admin() {
   // --- Mock monitoring efficiency data (temporary) ---
   const [rangeFrom, setRangeFrom] = useState<string>(() => new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0,10))
   const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0,10))
-  const [selectedObject, setSelectedObject] = useState<string>('all')
+  const [rangeFromTime, setRangeFromTime] = useState<string>(() => '00:00')
+  const [rangeToTime, setRangeToTime] = useState<string>(() => '23:59')
 
   const monitoringSpec = useMemo(() => ({
     specialties: [
@@ -471,21 +470,53 @@ export default function Admin() {
     })
   }, [mockWorkers, monitoringSpec])
 
-  // Export workers to CSV (opens in Excel)
-  const exportWorkersToCsv = (rows: any[]) => {
-    const headers = ['ID','ФИО','Специальность','Пульс','Шаг/ч','Объект','Статус','Эффективность']
+  // Compute per-device stats from real metrics
+  const computeDeviceStats = () => {
+    const devs = selectedDevice === 'all' ? devices : devices.filter(d => d.id === selectedDevice)
+    const rows = devs.map(d => {
+      const heartFor = heartData.filter(h => h.device_id === d.id)
+      const stepsFor = stepsData.filter(s => s.device_id === d.id)
+      const avgHr = heartFor.length ? Math.round(heartFor.reduce((s, x) => s + x.heart_rate, 0) / heartFor.length) : 0
+      const totalSteps = stepsFor.reduce((s, x) => s + x.steps, 0)
+      // duration: use rangeFrom/rangeTo if available
+      const start = new Date(`${rangeFrom}T00:00:00Z`).getTime()
+      const end = new Date(`${rangeTo}T23:59:59Z`).getTime()
+      const hours = Math.max(1, (end - start) / (1000 * 3600))
+      const stepsPerHour = Math.round(totalSteps / hours)
+      const spec = monitoringSpec.specialties[0] || { hr0: 135, stepsPerHour: 1000 }
+      const hrDiff = avgHr - (spec.hr0 || 135)
+      const hrScore = spec.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / spec.hr0 * 100) : 0
+      const stepsScore = spec.stepsPerHour ? Math.min(100, Math.round((stepsPerHour / spec.stepsPerHour) * 100)) : 0
+      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
+      return {
+        id: d.id,
+        name: d.name,
+        avgHr: avgHr || null,
+        stepsPerHour: stepsPerHour || null,
+        efficiency,
+        isEfficient: efficiency >= 90
+      }
+    })
+    return rows
+  }
+
+  // (kept worker export removed — using device export for real metrics)
+
+  const exportDevicesToCsv = (rows: any[]) => {
+    const headers = ['Device ID','Name','Avg HR','Steps/hour','Status','Efficiency%']
     const lines = rows.map(r => {
-      const objectName = mockObjects.find(o => o.id === r.objectId)?.name || '-'
-      const cols = [r.id, r.name, r.spec, r.avgHr, r.stepsPerHour, objectName, r.isEfficient ? 'Эффективный' : 'Неэффективный', r.efficiency]
+      const cols = [r.id, r.name, r.avgHr ?? '-', r.stepsPerHour ?? '-', r.isEfficient ? 'Эффективный' : 'Неэффективный', r.efficiency ?? '-']
       return cols.map((v: any) => `"${String(v ?? '')}"`).join(';')
     })
     const csv = [headers.join(';'), ...lines].join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    const namePart = selectedObject === 'all' ? 'all_objects' : selectedObject
+    const namePart = selectedDevice === 'all' ? 'all_devices' : selectedDevice
     a.href = url
-    a.download = `workers_${namePart}_${rangeFrom}_${rangeTo}.csv`
+    const fromPart = `${rangeFrom}_${rangeFromTime}`
+    const toPart = `${rangeTo}_${rangeToTime}`
+    a.download = `devices_${namePart}_${fromPart}_${toPart}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -496,13 +527,17 @@ export default function Admin() {
       setLoading(true)
       try {
         if (active === 'health-all') {
+          const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
+          const fromIso = rangeFrom ? `${rangeFrom}T00:00:00Z` : undefined
+          const toIso = rangeTo ? `${rangeTo}T23:59:59Z` : undefined
+
           const [heart, oxygen, pressure, sugar, temp, steps, devs] = await Promise.all([
-            getHeartRateMetrics(),
-            getBloodOxygenMetrics(),
-            getBloodPressureMetrics(),
-            getBloodSugarMetrics(),
-            getTemperatureMetrics(),
-            getStepsMetrics(),
+            getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodOxygenMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodPressureMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodSugarMetrics(undefined, deviceFilter, fromIso, toIso),
+            getTemperatureMetrics(undefined, deviceFilter, fromIso, toIso),
+            getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
             getDevices()
           ])
           setHeartData(heart)
@@ -514,6 +549,19 @@ export default function Admin() {
           setDevices(devs)
         } else if (active === 'ww-watch') {
           setDevices(await getDevices())
+        } else if (active === 'health-efficiency') {
+          // Fetch devices and metric slices for efficiency monitoring
+          const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
+          const fromIso = rangeFrom ? `${rangeFrom}T${(rangeFromTime || '00:00')}:00Z` : undefined
+          const toIso = rangeTo ? `${rangeTo}T${(rangeToTime || '23:59')}:59Z` : undefined
+          const [heart, steps, devs] = await Promise.all([
+            getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
+            getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
+            getDevices()
+          ])
+          setHeartData(heart)
+          setStepsData(steps)
+          setDevices(devs)
         }
       } catch (err) {
         console.error('Error loading data:', err)
@@ -525,7 +573,7 @@ export default function Admin() {
     if (['health-all', 'ww-watch'].includes(active)) {
       loadData()
     }
-  }, [active])
+  }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime])
 
   if (authLoading) return <div className="p-6">Загрузка...</div>
   if (!user) return <Navigate to="/login" replace />
@@ -550,22 +598,36 @@ export default function Admin() {
       case 'health-efficiency':
         return (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold">Мониторинг эффективности</h1>
-              <div className="flex items-center gap-3">
-                <label className="text-sm text-muted-foreground">Период:</label>
-                <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="px-2 py-1 border rounded bg-white text-black" />
-                <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="px-2 py-1 border rounded bg-white text-black" />
-                <label className="text-sm text-muted-foreground">Объект:</label>
-                <select value={selectedObject} onChange={e => setSelectedObject(e.target.value)} className="px-3 py-1 border rounded bg-background">
-                  <option value="all">Все объекты</option>
-                  {mockObjects.map(o => (
-                    <option key={o.id} value={o.id}>{o.name}</option>
-                  ))}
-                </select>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <h1 className="text-2xl font-bold">Мониторинг эффективности</h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-3 bg-background/50 p-2 rounded-md border">
+                    <span className="text-sm text-muted-foreground">Период</span>
+                    <div className="flex items-center gap-2">
+                      <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                      <input type="time" value={rangeFromTime} onChange={e => setRangeFromTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                      <span className="text-sm text-muted-foreground">—</span>
+                      <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                      <input type="time" value={rangeToTime} onChange={e => setRangeToTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 bg-background/50 p-2 rounded-md border">
+                    <label className="text-sm text-muted-foreground">Браслет</label>
+                    <select value={selectedDevice} onChange={e => setSelectedDevice(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm min-w-[180px]">
+                      <option value="all">Все браслеты</option>
+                      {devices.map(d => (
+                        <option key={d.id} value={d.id}>{d.name} ({d.mac_address})</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <button
-                    onClick={() => exportWorkersToCsv(workersWithStatus.filter(w => selectedObject === 'all' ? true : w.objectId === selectedObject))}
-                    className="ml-2 inline-flex items-center gap-2 px-3 py-1 border rounded bg-white text-sm hover:bg-green-50"
+                    onClick={() => {
+                      const rows = computeDeviceStats()
+                      exportDevicesToCsv(rows)
+                    }}
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-white border rounded-md text-sm hover:bg-green-50"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
                       <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -574,13 +636,59 @@ export default function Admin() {
                       <path d="M12 13v4" />
                       <path d="M16 13v4" />
                     </svg>
-                    Выгрузить Excel
+                    Выгрузить
                   </button>
+                </div>
               </div>
-            </div>
 
             {/* removed specMetrics card as requested */}
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Список браслетов</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">ID</th>
+                        <th className="text-left p-2">Название</th>
+                        <th className="text-left p-2">—</th>
+                        <th className="text-left p-2">Пульс</th>
+                        <th className="text-left p-2">Шаг/ч</th>
+                        
+                        <th className="text-left p-2">Статус</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {/* If we have real metrics, compute per-device stats */}
+                      {(() => {
+                        const rows = computeDeviceStats()
+                        return rows.map(r => (
+                          <tr key={r.id} className="border-b">
+                            <td className="p-2 font-mono text-xs">{r.id}</td>
+                            <td className="p-2">{r.name}</td>
+                            <td className="p-2">—</td>
+                            <td className="p-2 font-mono">{r.avgHr || '-'}</td>
+                            <td className="p-2 font-mono">{r.stepsPerHour || '-'}</td>
+                            
+                            <td className="p-2">
+                              {r.isEfficient ? (
+                                <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-semibold">Эффективный</span>
+                              ) : (
+                                <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-semibold">Неэффективный</span>
+                              )}
+                              <div className="text-xs text-muted-foreground mt-1">{r.efficiency}%</div>
+                            </td>
+                          </tr>
+                        ))
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Список тестовых работников</CardTitle>
@@ -666,13 +774,13 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <aside className="fixed left-0 top-16 bottom-0 w-64 border-r bg-background">
         <ScrollArea className="h-full">
           <Sidebar active={active} setActive={setActive} />
         </ScrollArea>
       </aside>
-      <main className="pl-64 pt-2">
+      <main className="ml-64 pt-2">
         <div className="p-6 max-w-7xl">
           {renderContent()}
         </div>

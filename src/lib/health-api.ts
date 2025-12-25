@@ -80,49 +80,67 @@ export type TemperatureMetric = {
 }
 
 // API функции
-export async function getBloodOxygenMetrics(userId?: string) {
+export async function getBloodOxygenMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('blood_oxygen_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as BloodOxygenMetric[]
 }
 
-export async function getBloodPressureMetrics(userId?: string) {
+export async function getBloodPressureMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('blood_pressure_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as BloodPressureMetric[]
 }
 
-export async function getBloodSugarMetrics(userId?: string) {
+export async function getBloodSugarMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('blood_sugar_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as BloodSugarMetric[]
 }
 
-export async function getHeartRateMetrics(userId?: string) {
+export async function getHeartRateMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('heart_rate_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as HeartRateMetric[]
 }
 
-export async function getStepsMetrics(userId?: string) {
+export async function getStepsMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('steps_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as StepsMetric[]
 }
 
-export async function getTemperatureMetrics(userId?: string) {
+export async function getTemperatureMetrics(userId?: string, deviceId?: string, from?: string, to?: string) {
   let query = supabase.from('temperature_metrics').select('*').order('timestamp', { ascending: false })
   if (userId) query = query.eq('user_id', userId)
+  if (deviceId) query = query.eq('device_id', deviceId)
+  if (from) query = query.gte('timestamp', from)
+  if (to) query = query.lte('timestamp', to)
   const { data, error } = await query
   if (error) throw error
   return data as TemperatureMetric[]
