@@ -456,26 +456,7 @@ export default function Admin() {
     { id: 'w6', name: 'Новиков Н.', spec: 'Разнорабочий', avgHr: 160, stepsPerHour: 700, objectId: 'o4' }
   ], [])
 
-  const specMetrics = useMemo(() => {
-    return monitoringSpec.specialties.map(s => {
-      const workers = mockWorkers.filter(w => w.spec === s.name && (selectedObject === 'all' || w.objectId === selectedObject))
-      const avgHr = workers.length ? Math.round(workers.reduce((acc, w) => acc + w.avgHr, 0) / workers.length) : 0
-      const avgSteps = workers.length ? Math.round(workers.reduce((acc, w) => acc + w.stepsPerHour, 0) / workers.length) : 0
-      const hrDiff = avgHr ? avgHr - s.hr0 : 0
-      const hrScore = s.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / s.hr0 * 100) : 0
-      const stepsScore = s.stepsPerHour ? Math.min(100, Math.round((avgSteps / s.stepsPerHour) * 100)) : 0
-      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
-      return {
-        name: s.name,
-        expectedHr: s.hr0,
-        expectedSteps: s.stepsPerHour,
-        avgHr,
-        avgSteps,
-        hrDiff,
-        efficiency
-      }
-    })
-  }, [monitoringSpec, mockWorkers, selectedObject])
+  
 
   // Compute per-worker efficiency and status
   const workersWithStatus = useMemo(() => {
