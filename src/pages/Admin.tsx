@@ -655,8 +655,6 @@ export default function Admin() {
                         <th className="text-left p-2">ID</th>
                         <th className="text-left p-2">Название</th>
                         <th className="text-left p-2">—</th>
-                        <th className="text-left p-2">Пульс</th>
-                        <th className="text-left p-2">Шаг/ч</th>
                         
                         <th className="text-left p-2">Статус</th>
                       </tr>
@@ -670,8 +668,6 @@ export default function Admin() {
                             <td className="p-2 font-mono text-xs">{r.id}</td>
                             <td className="p-2">{r.name}</td>
                             <td className="p-2">—</td>
-                            <td className="p-2 font-mono">{r.avgHr || '-'}</td>
-                            <td className="p-2 font-mono">{r.stepsPerHour || '-'}</td>
                             
                             <td className="p-2">
                               {r.isEfficient ? (
@@ -697,15 +693,13 @@ export default function Admin() {
                 <div className="overflow-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">ID</th>
-                        <th className="text-left p-2">ФИО</th>
-                        <th className="text-left p-2">Специальность</th>
-                        <th className="text-left p-2">Пульс</th>
-                        <th className="text-left p-2">Шаг/ч</th>
-                        <th className="text-left p-2">Объект</th>
-                        <th className="text-left p-2">Статус</th>
-                      </tr>
+                        <tr className="border-b">
+                          <th className="text-left p-2">ID</th>
+                          <th className="text-left p-2">ФИО</th>
+                          <th className="text-left p-2">Специальность</th>
+                          <th className="text-left p-2">Объект</th>
+                          <th className="text-left p-2">Статус</th>
+                        </tr>
                     </thead>
                     <tbody>
                       {workersWithStatus.map(w => (
@@ -713,8 +707,6 @@ export default function Admin() {
                           <td className="p-2 font-mono text-xs">{w.id}</td>
                           <td className="p-2">{w.name}</td>
                           <td className="p-2">{w.spec}</td>
-                          <td className="p-2 font-mono">{w.avgHr}</td>
-                          <td className="p-2 font-mono">{w.stepsPerHour}</td>
                           <td className="p-2">{mockObjects.find(o => o.id === w.objectId)?.name || '-'}</td>
                           <td className="p-2">
                             {w.isEfficient ? (
