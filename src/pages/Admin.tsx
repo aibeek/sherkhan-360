@@ -4,6 +4,7 @@ import { Navigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuth } from '@/context/AuthProvider'
+import { useLanguage } from '@/context/LanguageProvider'
 import {
   getBloodOxygenMetrics,
   getBloodPressureMetrics,
@@ -23,17 +24,18 @@ import {
 
 function Sidebar({ active, setActive }: { active: string; setActive: (v: string) => void }) {
   const [openHealth, setOpenHealth] = useState(true)
+  const { t } = useLanguage()
   return (
     <aside className="w-64 shrink-0 border-r bg-background">
       <div className="p-4 pt-2 border-b">
-        <div className="text-lg font-semibold">Админ панель</div>
+        <div className="text-lg font-semibold">{t('adminPanel')}</div>
       </div>
       <nav className="px-3 py-4 space-y-2">
-        <SectionHeader onClick={() => setOpenHealth(v => !v)} open={openHealth} title="Все данные" />
+        <SectionHeader onClick={() => setOpenHealth(v => !v)} open={openHealth} title={t('allData')} />
         {openHealth && (
           <div className="space-y-1">
-            <NavItem icon={<WatchIcon />} label="Эффективность" active={active==='health-efficiency'} onClick={() => setActive('health-efficiency')} />
-            <NavItem icon={<HeartIcon />} label="Здоровье" active={active==='health-all'} onClick={() => setActive('health-all')} />
+            <NavItem icon={<WatchIcon />} label={t('efficiency')} active={active==='health-efficiency'} onClick={() => setActive('health-efficiency')} />
+            <NavItem icon={<HeartIcon />} label={t('health')} active={active==='health-all'} onClick={() => setActive('health-all')} />
           </div>
         )}
       </nav>
@@ -89,7 +91,8 @@ function HealthAllView({
   selectedDevice: string
   setSelectedDevice: (id: string) => void
 }) {
-  if (loading) return <div className="p-6">Загрузка данных...</div>
+  const { t } = useLanguage()
+  if (loading) return <div className="p-6">{t('loadingData')}</div>
 
   // Фильтрация данных по выбранному устройству
   const filteredHeart = selectedDevice === 'all' ? heartData : heartData.filter(d => d.device_id === selectedDevice)
@@ -102,15 +105,15 @@ function HealthAllView({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Мониторинг здоровья</h1>
+        <h1 className="text-2xl font-bold">{t('healthMonitoring')}</h1>
         <div className="flex items-center gap-3">
-          <label className="text-sm text-muted-foreground">Устройство:</label>
+          <label className="text-sm text-muted-foreground">{t('device')}:</label>
           <select 
             value={selectedDevice} 
             onChange={(e) => setSelectedDevice(e.target.value)}
             className="px-3 py-2 border rounded-md bg-background text-sm min-w-[200px]"
           >
-            <option value="all">Все устройства ({devices.length})</option>
+            <option value="all">{t('allDevices')} ({devices.length})</option>
             {devices.map(device => (
               <option key={device.id} value={device.id}>
                 {device.name} ({device.mac_address})
@@ -128,8 +131,8 @@ function HealthAllView({
               <HeartIcon />
               <span className="text-2xl font-bold text-red-500">{filteredHeart.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей пульса</div>
-            {filteredHeart[0] && <div className="text-sm mt-1">{filteredHeart[0].heart_rate} уд/мин</div>}
+            <div className="text-xs text-muted-foreground">{t('heartRateRecords')}</div>
+            {filteredHeart[0] && <div className="text-sm mt-1">{filteredHeart[0].heart_rate} {t('bpm')}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -138,7 +141,7 @@ function HealthAllView({
               <OxygenIcon />
               <span className="text-2xl font-bold text-blue-500">{filteredOxygen.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей O₂</div>
+            <div className="text-xs text-muted-foreground">{t('oxygenRecords')}</div>
             {filteredOxygen[0] && <div className="text-sm mt-1">{filteredOxygen[0].oxygen_saturation}%</div>}
           </CardContent>
         </Card>
@@ -148,7 +151,7 @@ function HealthAllView({
               <PressureIcon />
               <span className="text-2xl font-bold text-purple-500">{filteredPressure.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей давления</div>
+            <div className="text-xs text-muted-foreground">{t('pressureRecords')}</div>
             {filteredPressure[0] && <div className="text-sm mt-1">{filteredPressure[0].systolic}/{filteredPressure[0].diastolic}</div>}
           </CardContent>
         </Card>
@@ -158,8 +161,8 @@ function HealthAllView({
               <SugarIcon />
               <span className="text-2xl font-bold text-pink-500">{filteredSugar.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей сахара</div>
-            {filteredSugar[0] && <div className="text-sm mt-1">{filteredSugar[0].blood_sugar} мг/дл</div>}
+            <div className="text-xs text-muted-foreground">{t('sugarRecords')}</div>
+            {filteredSugar[0] && <div className="text-sm mt-1">{filteredSugar[0].blood_sugar} {t('mgdl')}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -168,8 +171,8 @@ function HealthAllView({
               <TempIcon />
               <span className="text-2xl font-bold text-orange-500">{filteredTemp.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей темп.</div>
-            {filteredTemp[0] && <div className="text-sm mt-1">{filteredTemp[0].temperature.toFixed(1)}°C</div>}
+            <div className="text-xs text-muted-foreground">{t('tempRecords')}</div>
+            {filteredTemp[0] && <div className="text-sm mt-1">{filteredTemp[0].temperature.toFixed(1)}{t('celsius')}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -178,8 +181,8 @@ function HealthAllView({
               <StepsIcon />
               <span className="text-2xl font-bold text-green-500">{filteredSteps.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Записей шагов</div>
-            {filteredSteps[0] && <div className="text-sm mt-1">{filteredSteps[0].steps} шагов</div>}
+            <div className="text-xs text-muted-foreground">{t('stepsRecords')}</div>
+            {filteredSteps[0] && <div className="text-sm mt-1">{filteredSteps[0].steps} {t('stepsUnit')}</div>}
           </CardContent>
         </Card>
         <Card>
@@ -188,8 +191,8 @@ function HealthAllView({
               <WatchIcon />
               <span className="text-2xl font-bold text-gray-500">{devices.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">Устройств</div>
-            {devices[0] && <div className="text-sm mt-1">{devices[0].is_connected ? 'Онлайн' : 'Офлайн'}</div>}
+            <div className="text-xs text-muted-foreground">{t('devicesCount')}</div>
+            {devices[0] && <div className="text-sm mt-1">{devices[0].is_connected ? t('online') : t('offline')}</div>}
           </CardContent>
         </Card>
       </div>
@@ -206,14 +209,14 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
-                    <th className="text-left p-2">Значение</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('value')}</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredHeart.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-semibold">{row.heart_rate} уд/мин</td>
+                      <td className="p-2 font-bold">{row.heart_rate} {t('bpm')}</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -234,13 +237,13 @@ function HealthAllView({
                 <thead>
                   <tr className="border-b text-xs">
                     <th className="text-left p-2">O₂ %</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOxygen.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-semibold">{row.oxygen_saturation}%</td>
+                      <td className="p-2 font-bold">{row.oxygen_saturation}%</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -296,7 +299,7 @@ function HealthAllView({
                 <tbody>
                   {filteredSugar.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-semibold">{row.blood_sugar} мг/дл</td>
+                      <td className="p-2 font-bold">{row.blood_sugar} {t('mgdl')}</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -323,7 +326,7 @@ function HealthAllView({
                 <tbody>
                   {filteredTemp.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-semibold">{row.temperature.toFixed(1)}°C</td>
+                      <td className="p-2 font-bold">{row.temperature.toFixed(1)}{t('celsius')}</td>
                       <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
                     </tr>
                   ))}
@@ -343,9 +346,9 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
-                    <th className="text-left p-2">Шаги</th>
-                    <th className="text-left p-2">Ккал</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('steps')}</th>
+                    <th className="text-left p-2">{t('calories')}</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -373,10 +376,10 @@ function HealthAllView({
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b">
-                  <th className="text-left p-2">Название</th>
-                  <th className="text-left p-2">MAC</th>
-                  <th className="text-left p-2">Статус</th>
-                  <th className="text-left p-2">Последняя синхр.</th>
+                  <th className="text-left p-2">{t('deviceName')}</th>
+                  <th className="text-left p-2">{t('mac')}</th>
+                  <th className="text-left p-2">{t('status')}</th>
+                  <th className="text-left p-2">{t('lastSync')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -386,7 +389,7 @@ function HealthAllView({
                     <td className="p-2 font-mono text-xs">{row.mac_address}</td>
                     <td className="p-2">
                       <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {row.is_connected ? 'Подключено' : 'Отключено'}
+                        {row.is_connected ? t('connected') : t('disconnected')}
                       </span>
                     </td>
                     <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>
@@ -403,6 +406,7 @@ function HealthAllView({
 
 export default function Admin() {
   const { user, loading: authLoading } = useAuth()
+  const { t } = useLanguage()
   const [active, setActive] = useState('health-all')
   const [selectedDevice, setSelectedDevice] = useState('all')
   
@@ -575,11 +579,11 @@ export default function Admin() {
     }
   }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime])
 
-  if (authLoading) return <div className="p-6">Загрузка...</div>
+  if (authLoading) return <div className="p-6">{t('loading')}</div>
   if (!user) return <Navigate to="/login" replace />
 
   function renderContent() {
-    if (loading) return <div className="p-6">Загрузка данных...</div>
+    if (loading) return <div className="p-6">{t('loadingData')}</div>
     
     switch (active) {
       case 'health-all':
@@ -599,10 +603,10 @@ export default function Admin() {
         return (
           <div className="space-y-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <h1 className="text-2xl font-bold">Мониторинг эффективности</h1>
+                <h1 className="text-2xl font-bold">{t('efficiencyMonitoring')}</h1>
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-3 bg-background/50 p-2 rounded-md border">
-                    <span className="text-sm text-muted-foreground">Период</span>
+                    <span className="text-sm text-muted-foreground">{t('period')}</span>
                     <div className="flex items-center gap-2">
                       <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
                       <input type="time" value={rangeFromTime} onChange={e => setRangeFromTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
@@ -613,9 +617,9 @@ export default function Admin() {
                   </div>
 
                   <div className="flex items-center gap-2 bg-background/50 p-2 rounded-md border">
-                    <label className="text-sm text-muted-foreground">Браслет</label>
+                    <label className="text-sm text-muted-foreground">{t('bracelet')}</label>
                     <select value={selectedDevice} onChange={e => setSelectedDevice(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm min-w-[180px]">
-                      <option value="all">Все браслеты</option>
+                      <option value="all">{t('allBracelets')}</option>
                       {devices.map(d => (
                         <option key={d.id} value={d.id}>{d.name} ({d.mac_address})</option>
                       ))}
@@ -636,7 +640,7 @@ export default function Admin() {
                       <path d="M12 13v4" />
                       <path d="M16 13v4" />
                     </svg>
-                    Выгрузить
+                    {t('export')}
                   </button>
                 </div>
               </div>
@@ -645,7 +649,7 @@ export default function Admin() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Список браслетов</CardTitle>
+                <CardTitle>{t('braceletsList')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
@@ -671,9 +675,9 @@ export default function Admin() {
                             
                             <td className="p-2">
                               {r.isEfficient ? (
-                                <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-semibold">Эффективный</span>
+                                <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-bold">{t('efficient')}</span>
                               ) : (
-                                <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-semibold">Неэффективный</span>
+                                <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-bold">{t('inefficient')}</span>
                               )}
                               <div className="text-xs text-muted-foreground mt-1">{r.efficiency}%</div>
                             </td>
@@ -687,19 +691,19 @@ export default function Admin() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Список тестовых работников</CardTitle>
+                <CardTitle>{t('testWorkersList')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
                   <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2">ID</th>
-                          <th className="text-left p-2">ФИО</th>
-                          <th className="text-left p-2">Специальность</th>
-                          <th className="text-left p-2">Объект</th>
-                          <th className="text-left p-2">Статус</th>
-                        </tr>
+                        <th className="text-left p-2">ID</th>
+                        <th className="text-left p-2">{t('fullName')}</th>
+                        <th className="text-left p-2">{t('specialty')}</th>
+                        <th className="text-left p-2">{t('object')}</th>
+                        <th className="text-left p-2">{t('status')}</th>
+                      </tr>
                     </thead>
                     <tbody>
                       {workersWithStatus.map(w => (
@@ -710,9 +714,9 @@ export default function Admin() {
                           <td className="p-2">{mockObjects.find(o => o.id === w.objectId)?.name || '-'}</td>
                           <td className="p-2">
                             {w.isEfficient ? (
-                              <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-semibold">Эффективный</span>
+                              <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-bold">{t('efficient')}</span>
                             ) : (
-                              <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-semibold">Неэффективный</span>
+                              <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-bold">{t('inefficient')}</span>
                             )}
                             <div className="text-xs text-muted-foreground mt-1">{w.efficiency}%</div>
                           </td>
@@ -737,10 +741,10 @@ export default function Admin() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left p-2">Название</th>
-                      <th className="text-left p-2">MAC</th>
-                      <th className="text-left p-2">Статус</th>
-                      <th className="text-left p-2">Последняя синхр.</th>
+                      <th className="text-left p-2">{t('deviceName')}</th>
+                      <th className="text-left p-2">{t('mac')}</th>
+                      <th className="text-left p-2">{t('status')}</th>
+                      <th className="text-left p-2">{t('lastSync')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -750,7 +754,7 @@ export default function Admin() {
                         <td className="p-2 font-mono text-xs">{row.mac_address}</td>
                         <td className="p-2">
                           <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {row.is_connected ? 'Подключено' : 'Отключено'}
+                            {row.is_connected ? t('connected') : t('disconnected')}
                           </span>
                         </td>
                         <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>

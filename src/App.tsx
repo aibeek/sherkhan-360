@@ -7,15 +7,19 @@ import Admin from '@/pages/Admin'
 import HealthDashboard from '@/pages/HealthDashboard'
 import mainImage from '@/assets/main.jpeg'
 import { SpeedInsights } from '@vercel/speed-insights/react'
+import { useLanguage } from '@/context/LanguageProvider'
 
 function Home() {
+  const { t } = useLanguage()
+  
   return (
     <div className="mx-auto max-w-4xl p-6">
-      <p className="text-muted-foreground mt-2">Умные устройства для повышения эффективности предприятия и безопасности сотрудников</p>
-      <img src={mainImage} alt="Главное изображение" className="mt-6 w-full max-w-3xl rounded-lg border" />
+      <p className="text-muted-foreground mt-2">{t('homeDescription')}</p>
+      <img src={mainImage} alt={t('mainImage')} className="mt-6 w-full max-w-3xl rounded-lg border" />
     </div>
   )
 }
+
 
 function App() {
   return (

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/context/AuthProvider'
+import { useLanguage } from '@/context/LanguageProvider'
 import { 
   getBloodOxygenMetrics, 
   getBloodPressureMetrics,
@@ -22,23 +23,24 @@ import {
 
 // Sidebar компонент
 function HealthSidebar({ active, setActive }: { active: string; setActive: (v: string) => void }) {
+  const { t } = useLanguage()
   return (
     <aside className="w-64 shrink-0 border-r bg-background h-[calc(100vh-3.5rem)] sticky top-14">
       <div className="p-4">
-        <div className="text-lg font-semibold">Мониторинг</div>
+        <div className="text-lg font-semibold">{t('monitoring')}</div>
       </div>
       <nav className="px-3 pb-4 space-y-1">
-        <NavItem icon="📊" label="Обзор" active={active === 'overview'} onClick={() => setActive('overview')} />
-        <NavItem icon="📈" label="Эффективность" active={active === 'efficiency'} onClick={() => setActive('efficiency')} />
-        <NavItem icon="❤️" label="Пульс" active={active === 'heart'} onClick={() => setActive('heart')} />
-        <NavItem icon="🫁" label="Кислород" active={active === 'oxygen'} onClick={() => setActive('oxygen')} />
-        <NavItem icon="💉" label="Давление" active={active === 'pressure'} onClick={() => setActive('pressure')} />
-        <NavItem icon="🍬" label="Сахар" active={active === 'sugar'} onClick={() => setActive('sugar')} />
-        <NavItem icon="🌡️" label="Температура" active={active === 'temperature'} onClick={() => setActive('temperature')} />
-        <NavItem icon="👟" label="Шаги" active={active === 'steps'} onClick={() => setActive('steps')} />
+        <NavItem icon="📊" label={t('overview')} active={active === 'overview'} onClick={() => setActive('overview')} />
+        <NavItem icon="📈" label={t('efficiency')} active={active === 'efficiency'} onClick={() => setActive('efficiency')} />
+        <NavItem icon="❤️" label={t('heartRateNav')} active={active === 'heart'} onClick={() => setActive('heart')} />
+        <NavItem icon="🫁" label={t('oxygenNav')} active={active === 'oxygen'} onClick={() => setActive('oxygen')} />
+        <NavItem icon="💉" label={t('pressureNav')} active={active === 'pressure'} onClick={() => setActive('pressure')} />
+        <NavItem icon="🍬" label={t('sugarNav')} active={active === 'sugar'} onClick={() => setActive('sugar')} />
+        <NavItem icon="🌡️" label={t('temperatureNav')} active={active === 'temperature'} onClick={() => setActive('temperature')} />
+        <NavItem icon="👟" label={t('stepsNav')} active={active === 'steps'} onClick={() => setActive('steps')} />
         <div className="border-t my-2" />
-        <NavItem icon="📱" label="Устройства" active={active === 'devices'} onClick={() => setActive('devices')} />
-        <NavItem icon="👥" label="Пользователи" active={active === 'users'} onClick={() => setActive('users')} />
+        <NavItem icon="📱" label={t('devices')} active={active === 'devices'} onClick={() => setActive('devices')} />
+        <NavItem icon="👥" label={t('users')} active={active === 'users'} onClick={() => setActive('users')} />
       </nav>
     </aside>
   )
@@ -59,6 +61,7 @@ function NavItem({ icon, label, active, onClick }: { icon: string; label: string
 
 export default function HealthDashboard() {
   const { user, loading: authLoading } = useAuth()
+  const { t } = useLanguage()
   const [activeSection, setActiveSection] = useState('overview')
   const [oxygenData, setOxygenData] = useState<BloodOxygenMetric[]>([])
   const [pressureData, setPressureData] = useState<BloodPressureMetric[]>([])
@@ -120,7 +123,7 @@ export default function HealthDashboard() {
   }, [monitoringSpec, mockWorkers])
 
   // Редирект если не авторизован
-  if (authLoading) return <div className="p-6">Загрузка...</div>
+  if (authLoading) return <div className="p-6">{t('loading')}</div>
   if (!user) return <Navigate to="/login" replace />
 
   useEffect(() => {
@@ -157,13 +160,13 @@ export default function HealthDashboard() {
   if (loading) return (
     <div className="flex">
       <HealthSidebar active={activeSection} setActive={setActiveSection} />
-      <div className="flex-1 p-6">Загрузка данных из Supabase...</div>
+      <div className="flex-1 p-6">{t('loadingData')}</div>
     </div>
   )
   if (error) return (
     <div className="flex">
       <HealthSidebar active={activeSection} setActive={setActiveSection} />
-      <div className="flex-1 p-6 text-red-500">Ошибка: {error}</div>
+      <div className="flex-1 p-6 text-red-500">{t('loginError')}: {error}</div>
     </div>
   )
 
@@ -171,12 +174,12 @@ export default function HealthDashboard() {
     <div className="flex">
       <HealthSidebar active={activeSection} setActive={setActiveSection} />
       <main className="flex-1 p-6 space-y-6 overflow-auto h-[calc(100vh-3.5rem)]">
-      <h1 className="text-2xl font-bold">Мониторинг здоровья</h1>
+      <h1 className="text-2xl font-bold">{t('healthMonitoring')}</h1>
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Пользователи</CardTitle>
+            <CardTitle className="text-sm">{t('users')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{users.length}</div>
@@ -185,7 +188,7 @@ export default function HealthDashboard() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Устройства</CardTitle>
+            <CardTitle className="text-sm">{t('devices')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{devices.length}</div>
@@ -205,7 +208,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{oxygenData.length}</div>
             {oxygenData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {oxygenData[0].oxygen_saturation}%
+                {t('lastRecord')}: {oxygenData[0].oxygen_saturation}%
               </div>
             )}
           </CardContent>
@@ -219,7 +222,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{pressureData.length}</div>
             {pressureData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {pressureData[0].systolic}/{pressureData[0].diastolic}
+                {t('lastRecord')}: {pressureData[0].systolic}/{pressureData[0].diastolic}
               </div>
             )}
           </CardContent>
@@ -233,7 +236,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{sugarData.length}</div>
             {sugarData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {sugarData[0].blood_sugar} мг/дл
+                {t('lastRecord')}: {sugarData[0].blood_sugar} {t('mgdl')}
               </div>
             )}
           </CardContent>
@@ -247,7 +250,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{heartRateData.length}</div>
             {heartRateData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {heartRateData[0].heart_rate} уд/мин
+                {t('lastRecord')}: {heartRateData[0].heart_rate} {t('bpm')}
               </div>
             )}
           </CardContent>
@@ -261,7 +264,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{stepsData.length}</div>
             {stepsData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {stepsData[0].steps} шагов
+                {t('lastRecord')}: {stepsData[0].steps} {t('stepsUnit')}
               </div>
             )}
           </CardContent>
@@ -275,7 +278,7 @@ export default function HealthDashboard() {
             <div className="text-2xl font-bold">{temperatureData.length}</div>
             {temperatureData[0] && (
               <div className="text-xs text-muted-foreground mt-1">
-                Последняя: {temperatureData[0].temperature.toFixed(1)}°C
+                {t('lastRecord')}: {temperatureData[0].temperature.toFixed(1)}{t('celsius')}
               </div>
             )}
           </CardContent>
@@ -284,7 +287,7 @@ export default function HealthDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Последние записи кислорода в крови</CardTitle>
+          <CardTitle>{t('bloodOxygenRecords')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto">
@@ -294,7 +297,7 @@ export default function HealthDashboard() {
                   <th className="text-left p-2">ID</th>
                   <th className="text-left p-2">User ID</th>
                   <th className="text-left p-2">O₂ %</th>
-                  <th className="text-left p-2">Время</th>
+                  <th className="text-left p-2">{t('time')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,28 +317,28 @@ export default function HealthDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Мониторинг эффективности (тестовые данные)</CardTitle>
+          <CardTitle>{t('testEfficiency')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm">Период с</label>
+            <label className="text-sm">{t('periodFrom')}</label>
             <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="border rounded px-2 py-1" />
-            <label className="text-sm">по</label>
+            <label className="text-sm">{t('periodTo')}</label>
             <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="border rounded px-2 py-1" />
-            <div className="text-xs text-muted-foreground ml-4">Данные тестовые — не реальные.</div>
+            <div className="text-xs text-muted-foreground ml-4">{t('testDataNote')}</div>
           </div>
 
           <div className="overflow-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-2">Специальность</th>
-                  <th className="text-left p-2">Ожид. пульс (уд/мин)</th>
-                  <th className="text-left p-2">Факт. пульс (уд/мин)</th>
-                  <th className="text-left p-2">Δ</th>
-                  <th className="text-left p-2">Ожид. шаг/ч</th>
-                  <th className="text-left p-2">Факт. шаг/ч</th>
-                  <th className="text-left p-2">Эффективность %</th>
+                  <th className="text-left p-2">{t('specialty')}</th>
+                  <th className="text-left p-2">{t('expectedHr')}</th>
+                  <th className="text-left p-2">{t('actualHr')}</th>
+                  <th className="text-left p-2">{t('delta')}</th>
+                  <th className="text-left p-2">{t('expectedStepsPerHour')}</th>
+                  <th className="text-left p-2">{t('actualStepsPerHour')}</th>
+                  <th className="text-left p-2">{t('efficiencyPercent')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -358,7 +361,7 @@ export default function HealthDashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Список тестовых (ложных) работников</CardTitle>
+          <CardTitle>{t('testWorkers')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto">
@@ -366,10 +369,10 @@ export default function HealthDashboard() {
               <thead>
                 <tr className="border-b">
                   <th className="text-left p-2">ID</th>
-                  <th className="text-left p-2">ФИО</th>
-                  <th className="text-left p-2">Специальность</th>
-                  <th className="text-left p-2">Пульс (уд/мин)</th>
-                  <th className="text-left p-2">Шаг/ч</th>
+                  <th className="text-left p-2">{t('fullName')}</th>
+                  <th className="text-left p-2">{t('specialty')}</th>
+                  <th className="text-left p-2">{t('hrPerMin')}</th>
+                  <th className="text-left p-2">{t('stepsPerHour')}</th>
                 </tr>
               </thead>
               <tbody>

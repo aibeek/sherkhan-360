@@ -4,10 +4,12 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthProvider'
+import { useLanguage } from '@/context/LanguageProvider'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function Register() {
   const { register } = useAuth()
+  const { t } = useLanguage()
   const nav = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -23,7 +25,7 @@ export default function Register() {
       await register(name, email, password)
       nav('/')
     } catch (err: any) {
-      setError(err.message || 'Ошибка регистрации')
+      setError(err.message || t('registerError'))
     } finally {
       setLoading(false)
     }
@@ -33,32 +35,32 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Регистрация</CardTitle>
-          <CardDescription>Создайте новый аккаунт</CardDescription>
+          <CardTitle>{t('registerTitle')}</CardTitle>
+          <CardDescription>{t('registerDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Имя</Label>
+              <Label htmlFor="name">{t('name')}</Label>
               <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Пароль</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             {error && <div className="text-sm text-destructive">{error}</div>}
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? 'Регистрируем…' : 'Зарегистрироваться'}
+              {loading ? t('registering') : t('registerButton')}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="justify-center">
-          <span className="text-sm text-muted-foreground">Уже есть аккаунт?</span>
-          <Link to="/login" className="ml-1 text-sm text-primary underline-offset-4 hover:underline">Войти</Link>
+          <span className="text-sm text-muted-foreground">{t('haveAccount')}</span>
+          <Link to="/login" className="ml-1 text-sm text-primary underline-offset-4 hover:underline">{t('login')}</Link>
         </CardFooter>
       </Card>
     </div>
