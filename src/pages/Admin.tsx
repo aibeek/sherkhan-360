@@ -419,6 +419,7 @@ export default function Admin() {
   const [stepsData, setStepsData] = useState<StepsMetric[]>([])
   const [devices, setDevices] = useState<Device[]>([])
   const [loading, setLoading] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // --- Mock monitoring efficiency data (temporary) ---
   const [rangeFrom, setRangeFrom] = useState<string>(() => new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0,10))
@@ -577,7 +578,7 @@ export default function Admin() {
     if (['health-all', 'ww-watch'].includes(active)) {
       loadData()
     }
-  }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime])
+  }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime, refreshTrigger])
 
   if (authLoading) return <div className="p-6">{t('loading')}</div>
   if (!user) return <Navigate to="/login" replace />
@@ -613,6 +614,16 @@ export default function Admin() {
                       <span className="text-sm text-muted-foreground">—</span>
                       <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
                       <input type="time" value={rangeToTime} onChange={e => setRangeToTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                      
+                      <button
+                        onClick={() => setRefreshTrigger(prev => prev + 1)}
+                        className="ml-2 inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors shadow-sm"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        {t('apply')}
+                      </button>
                     </div>
                   </div>
 

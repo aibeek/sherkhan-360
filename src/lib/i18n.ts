@@ -86,6 +86,7 @@ export const translations = {
     specialty: 'Специальность',
     object: 'Объект',
     fullName: 'ФИО',
+    apply: 'Применить',
     
     // Health Dashboard
     monitoring: 'Мониторинг',
@@ -206,6 +207,7 @@ export const translations = {
     specialty: 'Specialty',
     object: 'Object',
     fullName: 'Full Name',
+    apply: 'Apply',
     
     // Health Dashboard
     monitoring: 'Monitoring',
