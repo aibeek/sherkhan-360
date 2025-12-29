@@ -603,47 +603,54 @@ export default function Admin() {
                   }))
                   setStepsData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), ...newSteps])
                 }
-                // Other metrics (one record per day is enough)
+                // Oxygen
                 if (!oxygenData.some(o => o.device_id === targetDeviceId && o.timestamp.includes(date))) {
-                  setOxygenData(prev => [...prev.filter(o => !(o.device_id === targetDeviceId && o.timestamp.includes(date))), {
-                    id: `mock-o2-${date}`,
+                  const newOxygen = Array.from({ length: 24 }, (_, i) => ({
+                    id: `mock-o2-${date}-${i}`,
                     user_id: 'mock-user',
                     device_id: targetDeviceId,
                     oxygen_saturation: 98,
-                    timestamp: `${date}T12:00:00Z`,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:15:00Z`,
                     created_at: new Date().toISOString()
-                  }])
+                  }))
+                  setOxygenData(prev => [...prev.filter(o => !(o.device_id === targetDeviceId && o.timestamp.includes(date))), ...newOxygen])
                 }
+                // Pressure
                 if (!pressureData.some(p => p.device_id === targetDeviceId && p.timestamp.includes(date))) {
-                  setPressureData(prev => [...prev.filter(p => !(p.device_id === targetDeviceId && p.timestamp.includes(date))), {
-                    id: `mock-bp-${date}`,
+                  const newPressure = Array.from({ length: 12 }, (_, i) => ({
+                    id: `mock-bp-${date}-${i}`,
                     user_id: 'mock-user',
                     device_id: targetDeviceId,
-                    systolic: 120,
-                    diastolic: 80,
-                    timestamp: `${date}T12:00:00Z`,
+                    systolic: 120 + Math.floor(Math.random() * 5),
+                    diastolic: 80 + Math.floor(Math.random() * 3),
+                    timestamp: `${date}T${String(i*2).padStart(2, '0')}:20:00Z`,
                     created_at: new Date().toISOString()
-                  }])
+                  }))
+                  setPressureData(prev => [...prev.filter(p => !(p.device_id === targetDeviceId && p.timestamp.includes(date))), ...newPressure])
                 }
+                // Sugar
                 if (!sugarData.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
-                  setSugarData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), {
-                    id: `mock-sugar-${date}`,
+                  const newSugar = Array.from({ length: 8 }, (_, i) => ({
+                    id: `mock-sugar-${date}-${i}`,
                     user_id: 'mock-user',
                     device_id: targetDeviceId,
-                    blood_sugar: 95,
-                    timestamp: `${date}T12:00:00Z`,
+                    blood_sugar: 95 + Math.floor(Math.random() * 10),
+                    timestamp: `${date}T${String(i*3).padStart(2, '0')}:45:00Z`,
                     created_at: new Date().toISOString()
-                  }])
+                  }))
+                  setSugarData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), ...newSugar])
                 }
+                // Temp
                 if (!tempData.some(t => t.device_id === targetDeviceId && t.timestamp.includes(date))) {
-                  setTempData(prev => [...prev.filter(t => !(t.device_id === targetDeviceId && t.timestamp.includes(date))), {
-                    id: `mock-temp-${date}`,
+                  const newTemp = Array.from({ length: 24 }, (_, i) => ({
+                    id: `mock-temp-${date}-${i}`,
                     user_id: 'mock-user',
                     device_id: targetDeviceId,
-                    temperature: 36.6,
-                    timestamp: `${date}T12:00:00Z`,
+                    temperature: 36.5 + (Math.random() * 0.3),
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:50:00Z`,
                     created_at: new Date().toISOString()
-                  }])
+                  }))
+                  setTempData(prev => [...prev.filter(t => !(t.device_id === targetDeviceId && t.timestamp.includes(date))), ...newTemp])
                 }
               }
             })
@@ -655,9 +662,13 @@ export default function Admin() {
           const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
           const fromIso = rangeFrom ? `${rangeFrom}T${(rangeFromTime || '00:00')}:00Z` : undefined
           const toIso = rangeTo ? `${rangeTo}T${(rangeToTime || '23:59')}:59Z` : undefined
-          const [heart, steps, devs] = await Promise.all([
+          const [heart, steps, oxygen, pressure, sugar, temp, devs] = await Promise.all([
             getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
             getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodOxygenMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodPressureMetrics(undefined, deviceFilter, fromIso, toIso),
+            getBloodSugarMetrics(undefined, deviceFilter, fromIso, toIso),
+            getTemperatureMetrics(undefined, deviceFilter, fromIso, toIso),
             getDevices()
           ])
 
@@ -698,6 +709,7 @@ export default function Admin() {
                 }
               }
               // Mock Steps (30000 steps per day = ~1250 steps/hour)
+              // Mock Steps (902 steps per day = ~37 steps/hour)
               if (!steps.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
                 for (let i = 0; i < 24; i++) {
                   steps.push({
@@ -712,11 +724,65 @@ export default function Admin() {
                   })
                 }
               }
+              // Other metrics (24 records each)
+              if (!oxygen.some(o => o.device_id === targetDeviceId && o.timestamp.includes(date))) {
+                for (let i = 0; i < 24; i++) {
+                  oxygen.push({
+                    id: `mock-o2-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    oxygen_saturation: 98,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:15:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
+              if (!pressure.some(p => p.device_id === targetDeviceId && p.timestamp.includes(date))) {
+                for (let i = 0; i < 12; i++) {
+                  pressure.push({
+                    id: `mock-bp-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    systolic: 120 + Math.floor(Math.random() * 5),
+                    diastolic: 80 + Math.floor(Math.random() * 3),
+                    timestamp: `${date}T${String(i*2).padStart(2, '0')}:20:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
+              if (!sugar.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
+                for (let i = 0; i < 8; i++) {
+                  sugar.push({
+                    id: `mock-sugar-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    blood_sugar: 95 + Math.floor(Math.random() * 10),
+                    timestamp: `${date}T${String(i*3).padStart(2, '0')}:45:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
+              if (!temp.some(t => t.device_id === targetDeviceId && t.timestamp.includes(date))) {
+                for (let i = 0; i < 24; i++) {
+                  temp.push({
+                    id: `mock-temp-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    temperature: 36.5 + (Math.random() * 0.3),
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:50:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
             }
           })
-
+          
           setHeartData(heart)
           setStepsData(steps)
+          setOxygenData(oxygen)
+          setPressureData(pressure)
+          setSugarData(sugar)
+          setTempData(temp)
           setDevices(devs)
         }
       } catch (err) {
