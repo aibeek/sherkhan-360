@@ -552,6 +552,102 @@ export default function Admin() {
           setTempData(temp)
           setStepsData(steps)
           setDevices(devs)
+
+          // Inject mock data for 28.12.2025 and 29.12.2025
+          const targetDeviceId = '2b00d865-ee8a-57af-1cba-d2fcb094ba66'
+          const mockDates = ['2025-12-28', '2025-12-29']
+
+          if (mockDates.some(date => rangeFrom <= date && rangeTo >= date)) {
+            if (!devs.some(d => d.id === targetDeviceId)) {
+              const mockDev = {
+                id: targetDeviceId,
+                user_id: 'mock-user',
+                name: 'Fitness Device',
+                mac_address: '2B:00:D8:65:EE:8A',
+                model: 'Pro',
+                firmware_version: '1.0',
+                is_connected: true,
+                last_sync: '2025-12-29T23:59:59Z',
+                real_time_tracking: true,
+                created_at: '2025-12-28T00:00:00Z',
+                updated_at: '2025-12-29T00:00:00Z'
+              }
+              setDevices(prev => [...prev.filter(d => d.id !== targetDeviceId), mockDev])
+            }
+            
+            mockDates.forEach(date => {
+              if (rangeFrom <= date && rangeTo >= date) {
+                // Heart Rate
+                if (!heart.some(h => h.device_id === targetDeviceId && h.timestamp.includes(date))) {
+                  const newHr = Array.from({ length: 24 }, (_, i) => ({
+                    id: `mock-hr-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    heart_rate: 135,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:00:00Z`,
+                    created_at: new Date().toISOString()
+                  }))
+                  setHeartData(prev => [...prev.filter(h => !(h.device_id === targetDeviceId && h.timestamp.includes(date))), ...newHr])
+                }
+                // Steps
+                if (!steps.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
+                  const newSteps = Array.from({ length: 24 }, (_, i) => ({
+                    id: `mock-steps-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    steps: 902,
+                    calories: 40,
+                    distance: 650,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:30:00Z`,
+                    created_at: new Date().toISOString()
+                  }))
+                  setStepsData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), ...newSteps])
+                }
+                // Other metrics (one record per day is enough)
+                if (!oxygenData.some(o => o.device_id === targetDeviceId && o.timestamp.includes(date))) {
+                  setOxygenData(prev => [...prev.filter(o => !(o.device_id === targetDeviceId && o.timestamp.includes(date))), {
+                    id: `mock-o2-${date}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    oxygen_saturation: 98,
+                    timestamp: `${date}T12:00:00Z`,
+                    created_at: new Date().toISOString()
+                  }])
+                }
+                if (!pressureData.some(p => p.device_id === targetDeviceId && p.timestamp.includes(date))) {
+                  setPressureData(prev => [...prev.filter(p => !(p.device_id === targetDeviceId && p.timestamp.includes(date))), {
+                    id: `mock-bp-${date}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    systolic: 120,
+                    diastolic: 80,
+                    timestamp: `${date}T12:00:00Z`,
+                    created_at: new Date().toISOString()
+                  }])
+                }
+                if (!sugarData.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
+                  setSugarData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), {
+                    id: `mock-sugar-${date}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    blood_sugar: 95,
+                    timestamp: `${date}T12:00:00Z`,
+                    created_at: new Date().toISOString()
+                  }])
+                }
+                if (!tempData.some(t => t.device_id === targetDeviceId && t.timestamp.includes(date))) {
+                  setTempData(prev => [...prev.filter(t => !(t.device_id === targetDeviceId && t.timestamp.includes(date))), {
+                    id: `mock-temp-${date}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    temperature: 36.6,
+                    timestamp: `${date}T12:00:00Z`,
+                    created_at: new Date().toISOString()
+                  }])
+                }
+              }
+            })
+          }
         } else if (active === 'ww-watch') {
           setDevices(await getDevices())
         } else if (active === 'health-efficiency') {
@@ -564,6 +660,61 @@ export default function Admin() {
             getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
             getDevices()
           ])
+
+          // Inject mock data for 28.12.2025 and 29.12.2025
+          const targetDeviceId = '2b00d865-ee8a-57af-1cba-d2fcb094ba66'
+          const mockDates = ['2025-12-28', '2025-12-29']
+
+          // Ensure device exists
+          if (!devs.some(d => d.id === targetDeviceId)) {
+            devs.push({
+              id: targetDeviceId,
+              user_id: 'mock-user',
+              name: 'Fitness Device',
+              mac_address: '2B:00:D8:65:EE:8A',
+              model: 'Pro',
+              firmware_version: '1.0',
+              is_connected: true,
+              last_sync: '2025-12-29T23:59:59Z',
+              real_time_tracking: true,
+              created_at: '2025-12-28T00:00:00Z',
+              updated_at: '2025-12-29T00:00:00Z'
+            })
+          }
+
+          mockDates.forEach(date => {
+            if (rangeFrom <= date && rangeTo >= date) {
+              // Mock Heart Rate (30 records per day to ensure stable average)
+              if (!heart.some(h => h.device_id === targetDeviceId && h.timestamp.includes(date))) {
+                for (let i = 0; i < 24; i++) {
+                  heart.push({
+                    id: `mock-hr-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    heart_rate: 135,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:00:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
+              // Mock Steps (30000 steps per day = ~1250 steps/hour)
+              if (!steps.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
+                for (let i = 0; i < 24; i++) {
+                  steps.push({
+                    id: `mock-steps-${date}-${i}`,
+                    user_id: 'mock-user',
+                    device_id: targetDeviceId,
+                    steps: 902,
+                    calories: 40,
+                    distance: 650,
+                    timestamp: `${date}T${String(i).padStart(2, '0')}:30:00Z`,
+                    created_at: new Date().toISOString()
+                  })
+                }
+              }
+            }
+          })
+
           setHeartData(heart)
           setStepsData(steps)
           setDevices(devs)
@@ -575,7 +726,7 @@ export default function Admin() {
       }
     }
     
-    if (['health-all', 'ww-watch'].includes(active)) {
+    if (['health-all', 'ww-watch', 'health-efficiency'].includes(active)) {
       loadData()
     }
   }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime, refreshTrigger])
