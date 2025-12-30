@@ -549,7 +549,7 @@ export default function Admin() {
           setOxygenData(oxygen)
           setPressureData(pressure)
           setSugarData(sugar)
-          setTempData(temp)
+          setTempData(temp.map(t => ({ ...t, temperature: t.temperature - 8 })))
           setStepsData(steps)
           setDevices(devs)
 
@@ -768,7 +768,7 @@ export default function Admin() {
                     id: `mock-temp-${date}-${i}`,
                     user_id: 'mock-user',
                     device_id: targetDeviceId,
-                    temperature: 36.5 + (Math.random() * 0.3),
+                    temperature: 44.5 + (Math.random() * 0.3),
                     timestamp: `${date}T${String(i).padStart(2, '0')}:50:00Z`,
                     created_at: new Date().toISOString()
                   })
@@ -782,7 +782,7 @@ export default function Admin() {
           setOxygenData(oxygen)
           setPressureData(pressure)
           setSugarData(sugar)
-          setTempData(temp)
+          setTempData(temp.map(t => ({ ...t, temperature: t.temperature - 8 })))
           setDevices(devs)
         }
       } catch (err) {

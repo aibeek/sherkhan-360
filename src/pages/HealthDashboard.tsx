@@ -145,7 +145,7 @@ export default function HealthDashboard() {
         setSugarData(sugar)
         setHeartRateData(heart)
         setStepsData(steps)
-        setTemperatureData(temp)
+        setTemperatureData(temp.map(t => ({ ...t, temperature: t.temperature - 8 })))
         setDevices(devicesData)
         setUsers(usersData)
       } catch (err: any) {
