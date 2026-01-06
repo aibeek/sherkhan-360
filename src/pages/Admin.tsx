@@ -21,6 +21,14 @@ import {
   type TemperatureMetric,
   type Device
 } from '@/lib/health-api'
+import { calculateBraceletEfficiency, type BraceletRecord, type ShiftConfig, type BraceletEfficiency } from '@/core'
+
+function formatDate(value?: string | null) {
+  if (!value) return '—'
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleString()
+}
 
 function Sidebar({ active, setActive }: { active: string; setActive: (v: string) => void }) {
   const [openHealth, setOpenHealth] = useState(true)
@@ -392,7 +400,7 @@ function HealthAllView({
                         {row.is_connected ? t('connected') : t('disconnected')}
                       </span>
                     </td>
-                    <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>
+                    <td className="p-2">{formatDate(row.last_sync)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -475,31 +483,119 @@ export default function Admin() {
     })
   }, [mockWorkers, monitoringSpec])
 
-  // Compute per-device stats from real metrics
+  // Compute per-device stats from real metrics using new efficiency formula
+  // E_bracelet = K_l × K_i × K_s
+  // K_l = activeTime / shiftTime (коэффициент загрузки)
+  // K_i = интенсивность по среднему пульсу активных интервалов
+  // K_s = штраф за риски (SpO2 < 94, HR > 130, systolic > 150)
   const computeDeviceStats = () => {
     const devs = selectedDevice === 'all' ? devices : devices.filter(d => d.id === selectedDevice)
+    
+    // Определяем конфиг смены на основе выбранного периода
+    const start = new Date(`${rangeFrom}T${rangeFromTime || '00:00'}:00Z`).getTime()
+    const end = new Date(`${rangeTo}T${rangeToTime || '23:59'}:59Z`).getTime()
+    const periodHours = Math.max(1, (end - start) / (1000 * 3600))
+    
+    const shiftConfig: ShiftConfig = {
+      intervalMinutes: 15, // интервал записи данных
+      shiftHours: Math.min(periodHours, 12) // максимум 12 часов смены
+    }
+    
     const rows = devs.map(d => {
+      // Собираем все метрики для устройства
       const heartFor = heartData.filter(h => h.device_id === d.id)
       const stepsFor = stepsData.filter(s => s.device_id === d.id)
-      const avgHr = heartFor.length ? Math.round(heartFor.reduce((s, x) => s + x.heart_rate, 0) / heartFor.length) : 0
+      const oxygenFor = oxygenData.filter(o => o.device_id === d.id)
+      const pressureFor = pressureData.filter(p => p.device_id === d.id)
+      const tempFor = tempData.filter(t => t.device_id === d.id)
+      
+      // Преобразуем в BraceletRecord[] — объединяем по timestamp
+      const timestampMap = new Map<string, BraceletRecord>()
+      
+      heartFor.forEach(h => {
+        const ts = h.timestamp
+        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
+        existing.heartRate = h.heart_rate
+        timestampMap.set(ts, existing)
+      })
+      
+      stepsFor.forEach(s => {
+        const ts = s.timestamp
+        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
+        existing.steps = s.steps
+        timestampMap.set(ts, existing)
+      })
+      
+      oxygenFor.forEach(o => {
+        const ts = o.timestamp
+        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
+        existing.spo2 = o.oxygen_saturation
+        timestampMap.set(ts, existing)
+      })
+      
+      pressureFor.forEach(p => {
+        const ts = p.timestamp
+        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
+        existing.systolic = p.systolic
+        existing.diastolic = p.diastolic
+        timestampMap.set(ts, existing)
+      })
+      
+      tempFor.forEach(t => {
+        const ts = t.timestamp
+        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
+        existing.skinTemp = t.temperature
+        timestampMap.set(ts, existing)
+      })
+      
+      const records: BraceletRecord[] = Array.from(timestampMap.values())
+        .filter(r => r.heartRate > 0) // только записи с пульсом
+      
+      // Считаем эффективность по новой формуле
+      let efficiencyResult: BraceletEfficiency
+      if (records.length === 0) {
+        efficiencyResult = {
+          activeTimeMinutes: 0,
+          loadCoefficient: 0,
+          intensityCoefficient: 0.7,
+          stabilityCoefficient: 1,
+          braceletEfficiency: 0
+        }
+      } else {
+        efficiencyResult = calculateBraceletEfficiency(records, shiftConfig)
+      }
+      
+      // Средний пульс для отображения
+      const avgHr = heartFor.length 
+        ? Math.round(heartFor.reduce((s, x) => s + x.heart_rate, 0) / heartFor.length) 
+        : 0
+      
+      // Шаги в час
       const totalSteps = stepsFor.reduce((s, x) => s + x.steps, 0)
-      // duration: use rangeFrom/rangeTo if available
-      const start = new Date(`${rangeFrom}T00:00:00Z`).getTime()
-      const end = new Date(`${rangeTo}T23:59:59Z`).getTime()
-      const hours = Math.max(1, (end - start) / (1000 * 3600))
-      const stepsPerHour = Math.round(totalSteps / hours)
-      const spec = monitoringSpec.specialties[0] || { hr0: 135, stepsPerHour: 1000 }
-      const hrDiff = avgHr - (spec.hr0 || 135)
-      const hrScore = spec.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / spec.hr0 * 100) : 0
-      const stepsScore = spec.stepsPerHour ? Math.min(100, Math.round((stepsPerHour / spec.stepsPerHour) * 100)) : 0
-      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
+      const stepsPerHour = periodHours > 0 ? Math.round(totalSteps / periodHours) : 0
+      
+      // Эффективность в процентах (0-100)
+      const efficiencyPercent = Math.round(efficiencyResult.braceletEfficiency * 100)
+      
+      // Определяем статус: 90-100% эффективный, 70-90% средний, <70% неэффективный
+      const status: 'efficient' | 'medium' | 'inefficient' = 
+        efficiencyPercent >= 90 ? 'efficient' : 
+        efficiencyPercent >= 70 ? 'medium' : 
+        'inefficient'
+      
       return {
         id: d.id,
         name: d.name,
         avgHr: avgHr || null,
         stepsPerHour: stepsPerHour || null,
-        efficiency,
-        isEfficient: efficiency >= 90
+        efficiency: efficiencyPercent,
+        status, // 'efficient' | 'medium' | 'inefficient'
+        isEfficient: efficiencyPercent >= 90, // для обратной совместимости
+        // Детали для отладки/отображения
+        activeMinutes: efficiencyResult.activeTimeMinutes,
+        loadCoef: efficiencyResult.loadCoefficient,
+        intensityCoef: efficiencyResult.intensityCoefficient,
+        stabilityCoef: efficiencyResult.stabilityCoefficient
       }
     })
     return rows
@@ -533,8 +629,9 @@ export default function Admin() {
       try {
         if (active === 'health-all') {
           const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
-          const fromIso = rangeFrom ? `${rangeFrom}T00:00:00Z` : undefined
-          const toIso = rangeTo ? `${rangeTo}T23:59:59Z` : undefined
+          // Не фильтруем по дате для health-all - показываем все данные
+          const fromIso = undefined
+          const toIso = undefined
 
           const [heart, oxygen, pressure, sugar, temp, steps, devs] = await Promise.all([
             getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
@@ -902,8 +999,10 @@ export default function Admin() {
                             <td className="p-2">—</td>
                             
                             <td className="p-2">
-                              {r.isEfficient ? (
+                              {r.status === 'efficient' ? (
                                 <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-bold">{t('efficient')}</span>
+                              ) : r.status === 'medium' ? (
+                                <span className="inline-block px-2 py-1 rounded text-sm bg-yellow-100 text-yellow-800 font-bold">{t('medium')}</span>
                               ) : (
                                 <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-bold">{t('inefficient')}</span>
                               )}
@@ -985,7 +1084,7 @@ export default function Admin() {
                             {row.is_connected ? t('connected') : t('disconnected')}
                           </span>
                         </td>
-                        <td className="p-2">{new Date(row.last_sync).toLocaleString()}</td>
+                        <td className="p-2">{formatDate(row.last_sync)}</td>
                       </tr>
                     ))}
                   </tbody>
