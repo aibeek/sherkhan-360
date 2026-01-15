@@ -210,7 +210,7 @@ function HealthAllView({
         {/* Пульс */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><HeartIcon /> Пульс</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><HeartIcon /> {t('heartRate')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
@@ -237,7 +237,7 @@ function HealthAllView({
         {/* Кислород */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><OxygenIcon /> Кислород в крови</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><OxygenIcon /> {t('oxygen')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
@@ -264,16 +264,16 @@ function HealthAllView({
         {/* Давление */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><PressureIcon /> Давление</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><PressureIcon /> {t('pressure')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
-                    <th className="text-left p-2">Сист.</th>
-                    <th className="text-left p-2">Диаст.</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('systolic')}</th>
+                    <th className="text-left p-2">{t('diastolic')}</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,15 +293,15 @@ function HealthAllView({
         {/* Сахар */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><SugarIcon /> Сахар в крови</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><SugarIcon /> {t('sugar')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
-                    <th className="text-left p-2">Уровень</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('level')}</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -320,15 +320,15 @@ function HealthAllView({
         {/* Температура */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><TempIcon /> Температура</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><TempIcon /> {t('temperature')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
-                    <th className="text-left p-2">Темп.</th>
-                    <th className="text-left p-2">Время</th>
+                    <th className="text-left p-2">{t('temp')}</th>
+                    <th className="text-left p-2">{t('time')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -347,7 +347,7 @@ function HealthAllView({
         {/* Шаги */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><StepsIcon /> Шаги</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2"><StepsIcon /> {t('steps')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-64">
@@ -377,7 +377,7 @@ function HealthAllView({
       {/* Устройства */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2"><WatchIcon /> Устройства</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2"><WatchIcon /> {t('devices')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto">
@@ -606,7 +606,7 @@ export default function Admin() {
   const exportDevicesToCsv = (rows: any[]) => {
     const headers = ['Device ID','Name','Avg HR','Steps/hour','Status','Efficiency%']
     const lines = rows.map(r => {
-      const cols = [r.id, r.name, r.avgHr ?? '-', r.stepsPerHour ?? '-', r.isEfficient ? 'Эффективный' : 'Неэффективный', r.efficiency ?? '-']
+      const cols = [r.id, r.name, r.avgHr ?? '-', r.stepsPerHour ?? '-', r.isEfficient ? t('efficient') : t('inefficient'), r.efficiency ?? '-']
       return cols.map((v: any) => `"${String(v ?? '')}"`).join(';')
     })
     const csv = [headers.join(';'), ...lines].join('\n')
@@ -982,10 +982,10 @@ export default function Admin() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left p-2">ID</th>
-                        <th className="text-left p-2">Название</th>
+                        <th className="text-left p-2">{t('deviceName')}</th>
                         <th className="text-left p-2">—</th>
                         
-                        <th className="text-left p-2">Статус</th>
+                        <th className="text-left p-2">{t('status')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1060,8 +1060,8 @@ export default function Admin() {
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Часы WW</CardTitle>
-              <CardDescription>Всего устройств: {devices.length}</CardDescription>
+              <CardTitle>{t('wwWatch')}</CardTitle>
+              <CardDescription>{t('totalDevices')}: {devices.length}</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">

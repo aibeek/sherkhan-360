@@ -120,6 +120,10 @@ export const translations = {
     mgdl: 'мг/дл',
     celsius: '°C',
     stepsUnit: 'шагов',
+    
+    // WW Watch
+    wwWatch: 'Часы WW',
+    totalDevices: 'Всего устройств',
   },
   en: {
     // Navbar
@@ -242,6 +246,10 @@ export const translations = {
     mgdl: 'mg/dL',
     celsius: '°C',
     stepsUnit: 'steps',
+    
+    // WW Watch
+    wwWatch: 'WW Watch',
+    totalDevices: 'Total devices',
   }
 }
 
