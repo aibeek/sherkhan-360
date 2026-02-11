@@ -11,15 +11,13 @@ import {
   getBloodSugarMetrics,
   getHeartRateMetrics,
   getStepsMetrics,
-  getTemperatureMetrics,
-  getDevices,
+  getUsers,
   type BloodOxygenMetric,
   type BloodPressureMetric,
   type BloodSugarMetric,
   type HeartRateMetric,
   type StepsMetric,
-  type TemperatureMetric,
-  type Device
+  type User
 } from '@/lib/health-api'
 import { calculateBraceletEfficiency, type BraceletRecord, type ShiftConfig, type BraceletEfficiency } from '@/core'
 
@@ -28,6 +26,23 @@ function formatDate(value?: string | null) {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
   return d.toLocaleString()
+}
+
+function formatTime24h(value: string) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '—'
+  const year = d.getUTCFullYear()
+  const month = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  const hours = String(d.getUTCHours()).padStart(2, '0')
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0')
+  const seconds = String(d.getUTCSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+function getUserName(userId: string, users: User[]): string {
+  const user = users.find(u => u.id === userId)
+  return user?.full_name || 'Unknown'
 }
 
 function Sidebar({ active, setActive }: { active: string; setActive: (v: string) => void }) {
@@ -81,50 +96,48 @@ function HeartIcon() { return <IconBase className="h-4 w-4"><path d="M19 14c1.49
 function OxygenIcon() { return <IconBase className="h-4 w-4"><circle cx="12" cy="12" r="10" /><path d="M12 6v6" /><path d="M8 12h8" /></IconBase> }
 function PressureIcon() { return <IconBase className="h-4 w-4"><path d="M12 2v20" /><path d="M2 12h4" /><path d="M18 12h4" /><circle cx="12" cy="12" r="4" /></IconBase> }
 function SugarIcon() { return <IconBase className="h-4 w-4"><path d="M12 2a10 10 0 1 0 10 10" /><path d="M12 12V6" /><path d="M12 12h6" /></IconBase> }
-function TempIcon() { return <IconBase className="h-4 w-4"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" /></IconBase> }
 function StepsIcon() { return <IconBase className="h-4 w-4"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16" /><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20" /></IconBase> }
 
 // Все данные здоровья на одной странице
 function HealthAllView({ 
-  heartData, oxygenData, pressureData, sugarData, tempData, stepsData, devices, loading, selectedDevice, setSelectedDevice
+  heartData, oxygenData, pressureData, sugarData, stepsData, users, loading, selectedUser, setSelectedUser
 }: { 
   heartData: HeartRateMetric[]
   oxygenData: BloodOxygenMetric[]
   pressureData: BloodPressureMetric[]
   sugarData: BloodSugarMetric[]
-  tempData: TemperatureMetric[]
   stepsData: StepsMetric[]
-  devices: Device[]
+  users: User[]
   loading: boolean
-  selectedDevice: string
-  setSelectedDevice: (id: string) => void
+  selectedUser: string
+  setSelectedUser: (id: string) => void
 }) {
+  const getUserNameById = (userId: string) => getUserName(userId, users)
   const { t } = useLanguage()
   if (loading) return <div className="p-6">{t('loadingData')}</div>
 
-  // Фильтрация данных по выбранному устройству
-  const filteredHeart = selectedDevice === 'all' ? heartData : heartData.filter(d => d.device_id === selectedDevice)
-  const filteredOxygen = selectedDevice === 'all' ? oxygenData : oxygenData.filter(d => d.device_id === selectedDevice)
-  const filteredPressure = selectedDevice === 'all' ? pressureData : pressureData.filter(d => d.device_id === selectedDevice)
-  const filteredSugar = selectedDevice === 'all' ? sugarData : sugarData.filter(d => d.device_id === selectedDevice)
-  const filteredTemp = selectedDevice === 'all' ? tempData : tempData.filter(d => d.device_id === selectedDevice)
-  const filteredSteps = selectedDevice === 'all' ? stepsData : stepsData.filter(d => d.device_id === selectedDevice)
+  // Фильтрация данных по выбранному пользователю
+  const filteredHeart = selectedUser === 'all' ? heartData : heartData.filter(d => d.user_id === selectedUser)
+  const filteredOxygen = selectedUser === 'all' ? oxygenData : oxygenData.filter(d => d.user_id === selectedUser)
+  const filteredPressure = selectedUser === 'all' ? pressureData : pressureData.filter(d => d.user_id === selectedUser)
+  const filteredSugar = selectedUser === 'all' ? sugarData : sugarData.filter(d => d.user_id === selectedUser)
+  const filteredSteps = selectedUser === 'all' ? stepsData : stepsData.filter(d => d.user_id === selectedUser)
   
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t('healthMonitoring')}</h1>
         <div className="flex items-center gap-3">
-          <label className="text-sm text-muted-foreground">{t('device')}:</label>
+          <label className="text-sm text-muted-foreground">{t('user')}:</label>
           <select 
-            value={selectedDevice} 
-            onChange={(e) => setSelectedDevice(e.target.value)}
+            value={selectedUser} 
+            onChange={(e) => setSelectedUser(e.target.value)}
             className="px-3 py-2 border rounded-md bg-background text-sm min-w-[200px]"
           >
-            <option value="all">{t('allDevices')} ({devices.length})</option>
-            {devices.map(device => (
-              <option key={device.id} value={device.id}>
-                {device.name} ({device.mac_address})
+            <option value="all">{t('allUsers')} ({users.length})</option>
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.full_name}
               </option>
             ))}
           </select>
@@ -132,7 +145,7 @@ function HealthAllView({
       </div>
       
       {/* Статистика */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -176,16 +189,6 @@ function HealthAllView({
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <TempIcon />
-              <span className="text-2xl font-bold text-orange-500">{filteredTemp.length}</span>
-            </div>
-            <div className="text-xs text-muted-foreground">{t('tempRecords')}</div>
-            {filteredTemp[0] && <div className="text-sm mt-1">{filteredTemp[0].temperature.toFixed(1)}{t('celsius')}</div>}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
               <StepsIcon />
               <span className="text-2xl font-bold text-green-500">{filteredSteps.length}</span>
             </div>
@@ -197,10 +200,10 @@ function HealthAllView({
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <WatchIcon />
-              <span className="text-2xl font-bold text-gray-500">{devices.length}</span>
+              <span className="text-2xl font-bold text-gray-500">{users.length}</span>
             </div>
-            <div className="text-xs text-muted-foreground">{t('devicesCount')}</div>
-            {devices[0] && <div className="text-sm mt-1">{devices[0].is_connected ? t('online') : t('offline')}</div>}
+            <div className="text-xs text-muted-foreground">{t('usersCount')}</div>
+            {users[0] && <div className="text-sm mt-1">{users[0].full_name}</div>}
           </CardContent>
         </Card>
       </div>
@@ -217,6 +220,7 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
+                    <th className="text-left p-2">{t('fullName')}</th>
                     <th className="text-left p-2">{t('value')}</th>
                     <th className="text-left p-2">{t('time')}</th>
                   </tr>
@@ -224,8 +228,9 @@ function HealthAllView({
                 <tbody>
                   {filteredHeart.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-semibold">{getUserNameById(row.user_id)}</td>
                       <td className="p-2 font-bold">{row.heart_rate} {t('bpm')}</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
+                      <td className="p-2 text-xs">{formatTime24h(row.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -244,6 +249,7 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
+                    <th className="text-left p-2">{t('fullName')}</th>
                     <th className="text-left p-2">O₂ %</th>
                     <th className="text-left p-2">{t('time')}</th>
                   </tr>
@@ -251,8 +257,9 @@ function HealthAllView({
                 <tbody>
                   {filteredOxygen.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-semibold">{getUserNameById(row.user_id)}</td>
                       <td className="p-2 font-bold">{row.oxygen_saturation}%</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
+                      <td className="p-2 text-xs">{formatTime24h(row.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -271,6 +278,7 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
+                    <th className="text-left p-2">{t('fullName')}</th>
                     <th className="text-left p-2">{t('systolic')}</th>
                     <th className="text-left p-2">{t('diastolic')}</th>
                     <th className="text-left p-2">{t('time')}</th>
@@ -279,9 +287,10 @@ function HealthAllView({
                 <tbody>
                   {filteredPressure.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-semibold">{getUserNameById(row.user_id)}</td>
                       <td className="p-2 font-semibold">{row.systolic}</td>
                       <td className="p-2 font-semibold">{row.diastolic}</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
+                      <td className="p-2 text-xs">{formatTime24h(row.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -300,6 +309,7 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
+                    <th className="text-left p-2">{t('fullName')}</th>
                     <th className="text-left p-2">{t('level')}</th>
                     <th className="text-left p-2">{t('time')}</th>
                   </tr>
@@ -307,35 +317,9 @@ function HealthAllView({
                 <tbody>
                   {filteredSugar.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-semibold">{getUserNameById(row.user_id)}</td>
                       <td className="p-2 font-bold">{row.blood_sugar} {t('mgdl')}</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-
-        {/* Температура */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2"><TempIcon /> {t('temperature')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-64">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-xs">
-                    <th className="text-left p-2">{t('temp')}</th>
-                    <th className="text-left p-2">{t('time')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredTemp.map(row => (
-                    <tr key={row.id} className="border-b hover:bg-muted/50">
-                      <td className="p-2 font-bold">{row.temperature.toFixed(1)}{t('celsius')}</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
+                      <td className="p-2 text-xs">{formatTime24h(row.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -354,6 +338,7 @@ function HealthAllView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-xs">
+                    <th className="text-left p-2">{t('fullName')}</th>
                     <th className="text-left p-2">{t('steps')}</th>
                     <th className="text-left p-2">{t('calories')}</th>
                     <th className="text-left p-2">{t('time')}</th>
@@ -362,9 +347,10 @@ function HealthAllView({
                 <tbody>
                   {filteredSteps.map(row => (
                     <tr key={row.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2 font-semibold">{getUserNameById(row.user_id)}</td>
                       <td className="p-2 font-semibold">{row.steps}</td>
                       <td className="p-2">{row.calories}</td>
-                      <td className="p-2 text-xs">{new Date(row.timestamp).toLocaleString()}</td>
+                      <td className="p-2 text-xs">{formatTime24h(row.timestamp)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -374,33 +360,29 @@ function HealthAllView({
         </Card>
       </div>
 
-      {/* Устройства */}
+      {/* Пользователи */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2"><WatchIcon /> {t('devices')}</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2"><WatchIcon /> {t('users')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-background">
                 <tr className="border-b">
-                  <th className="text-left p-2">{t('deviceName')}</th>
-                  <th className="text-left p-2">{t('mac')}</th>
-                  <th className="text-left p-2">{t('status')}</th>
-                  <th className="text-left p-2">{t('lastSync')}</th>
+                  <th className="text-left p-2">{t('fullName')}</th>
+                  <th className="text-left p-2">{t('email')}</th>
+                  <th className="text-left p-2">{t('lastLogin')}</th>
+                  <th className="text-left p-2">{t('createdAt')}</th>
                 </tr>
               </thead>
               <tbody>
-                {devices.map(row => (
+                {users.map(row => (
                   <tr key={row.id} className="border-b hover:bg-muted/50">
-                    <td className="p-2 font-semibold">{row.name}</td>
-                    <td className="p-2 font-mono text-xs">{row.mac_address}</td>
-                    <td className="p-2">
-                      <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {row.is_connected ? t('connected') : t('disconnected')}
-                      </span>
-                    </td>
-                    <td className="p-2">{formatDate(row.last_sync)}</td>
+                    <td className="p-2 font-semibold">{row.full_name}</td>
+                    <td className="p-2">{row.email}</td>
+                    <td className="p-2">{formatDate(row.last_login)}</td>
+                    <td className="p-2">{formatDate(row.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -416,16 +398,15 @@ export default function Admin() {
   const { user, loading: authLoading } = useAuth()
   const { t } = useLanguage()
   const [active, setActive] = useState('health-all')
-  const [selectedDevice, setSelectedDevice] = useState('all')
+  const [selectedUser, setSelectedUser] = useState('all')
   
   // Health data states
   const [heartData, setHeartData] = useState<HeartRateMetric[]>([])
   const [oxygenData, setOxygenData] = useState<BloodOxygenMetric[]>([])
   const [pressureData, setPressureData] = useState<BloodPressureMetric[]>([])
   const [sugarData, setSugarData] = useState<BloodSugarMetric[]>([])
-  const [tempData, setTempData] = useState<TemperatureMetric[]>([])
   const [stepsData, setStepsData] = useState<StepsMetric[]>([])
-  const [devices, setDevices] = useState<Device[]>([])
+  const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
@@ -483,13 +464,13 @@ export default function Admin() {
     })
   }, [mockWorkers, monitoringSpec])
 
-  // Compute per-device stats from real metrics using new efficiency formula
+  // Compute per-user stats from real metrics using new efficiency formula
   // E_bracelet = K_l × K_i × K_s
   // K_l = activeTime / shiftTime (коэффициент загрузки)
   // K_i = интенсивность по среднему пульсу активных интервалов
   // K_s = штраф за риски (SpO2 < 94, HR > 130, systolic > 150)
-  const computeDeviceStats = () => {
-    const devs = selectedDevice === 'all' ? devices : devices.filter(d => d.id === selectedDevice)
+  const computeUserStats = () => {
+    const usrs = selectedUser === 'all' ? users : users.filter(u => u.id === selectedUser)
     
     // Определяем конфиг смены на основе выбранного периода
     const start = new Date(`${rangeFrom}T${rangeFromTime || '00:00'}:00Z`).getTime()
@@ -501,13 +482,12 @@ export default function Admin() {
       shiftHours: Math.min(periodHours, 12) // максимум 12 часов смены
     }
     
-    const rows = devs.map(d => {
-      // Собираем все метрики для устройства
-      const heartFor = heartData.filter(h => h.device_id === d.id)
-      const stepsFor = stepsData.filter(s => s.device_id === d.id)
-      const oxygenFor = oxygenData.filter(o => o.device_id === d.id)
-      const pressureFor = pressureData.filter(p => p.device_id === d.id)
-      const tempFor = tempData.filter(t => t.device_id === d.id)
+    const rows = usrs.map(u => {
+      // Собираем все метрики для пользователя
+      const heartFor = heartData.filter(h => h.user_id === u.id)
+      const stepsFor = stepsData.filter(s => s.user_id === u.id)
+      const oxygenFor = oxygenData.filter(o => o.user_id === u.id)
+      const pressureFor = pressureData.filter(p => p.user_id === u.id)
       
       // Преобразуем в BraceletRecord[] — объединяем по timestamp
       const timestampMap = new Map<string, BraceletRecord>()
@@ -538,13 +518,6 @@ export default function Admin() {
         const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
         existing.systolic = p.systolic
         existing.diastolic = p.diastolic
-        timestampMap.set(ts, existing)
-      })
-      
-      tempFor.forEach(t => {
-        const ts = t.timestamp
-        const existing = timestampMap.get(ts) || { timestamp: ts, heartRate: 0 }
-        existing.skinTemp = t.temperature
         timestampMap.set(ts, existing)
       })
       
@@ -584,8 +557,9 @@ export default function Admin() {
         'inefficient'
       
       return {
-        id: d.id,
-        name: d.name,
+        id: u.id,
+        name: u.full_name,
+        email: u.email,
         avgHr: avgHr || null,
         stepsPerHour: stepsPerHour || null,
         efficiency: efficiencyPercent,
@@ -603,21 +577,21 @@ export default function Admin() {
 
   // (kept worker export removed — using device export for real metrics)
 
-  const exportDevicesToCsv = (rows: any[]) => {
-    const headers = ['Device ID','Name','Avg HR','Steps/hour','Status','Efficiency%']
+  const exportUsersToCsv = (rows: any[]) => {
+    const headers = ['User ID','Name','Email','Avg HR','Steps/hour','Status','Efficiency%']
     const lines = rows.map(r => {
-      const cols = [r.id, r.name, r.avgHr ?? '-', r.stepsPerHour ?? '-', r.isEfficient ? t('efficient') : t('inefficient'), r.efficiency ?? '-']
+      const cols = [r.id, r.name, r.email ?? '-', r.avgHr ?? '-', r.stepsPerHour ?? '-', r.isEfficient ? t('efficient') : t('inefficient'), r.efficiency ?? '-']
       return cols.map((v: any) => `"${String(v ?? '')}"`).join(';')
     })
     const csv = [headers.join(';'), ...lines].join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    const namePart = selectedDevice === 'all' ? 'all_devices' : selectedDevice
+    const namePart = selectedUser === 'all' ? 'all_users' : selectedUser
     a.href = url
     const fromPart = `${rangeFrom}_${rangeFromTime}`
     const toPart = `${rangeTo}_${rangeToTime}`
-    a.download = `devices_${namePart}_${fromPart}_${toPart}.csv`
+    a.download = `users_${namePart}_${fromPart}_${toPart}.csv`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -628,259 +602,52 @@ export default function Admin() {
       setLoading(true)
       try {
         if (active === 'health-all') {
-          const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
+          const userFilter = selectedUser === 'all' ? undefined : selectedUser
           // Не фильтруем по дате для health-all - показываем все данные
           const fromIso = undefined
           const toIso = undefined
 
-          const [heart, oxygen, pressure, sugar, temp, steps, devs] = await Promise.all([
-            getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodOxygenMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodPressureMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodSugarMetrics(undefined, deviceFilter, fromIso, toIso),
-            getTemperatureMetrics(undefined, deviceFilter, fromIso, toIso),
-            getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
-            getDevices()
+          const [heart, oxygen, pressure, sugar, steps, usrs] = await Promise.all([
+            getHeartRateMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodOxygenMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodPressureMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodSugarMetrics(userFilter, undefined, fromIso, toIso),
+            getStepsMetrics(userFilter, undefined, fromIso, toIso),
+            getUsers()
           ])
           setHeartData(heart)
           setOxygenData(oxygen)
           setPressureData(pressure)
           setSugarData(sugar)
-          setTempData(temp.map(t => ({ ...t, temperature: t.temperature - 8 })))
           setStepsData(steps)
-          setDevices(devs)
+          setUsers(usrs)
+          console.log('Loaded users:', usrs.length, usrs)
 
-          // Inject mock data for 28.12.2025 and 29.12.2025
-          const targetDeviceId = '2b00d865-ee8a-57af-1cba-d2fcb094ba66'
-          const mockDates = ['2025-12-28', '2025-12-29']
-
-          if (mockDates.some(date => rangeFrom <= date && rangeTo >= date)) {
-            if (!devs.some(d => d.id === targetDeviceId)) {
-              const mockDev = {
-                id: targetDeviceId,
-                user_id: 'mock-user',
-                name: 'Fitness Device',
-                mac_address: '2B:00:D8:65:EE:8A',
-                model: 'Pro',
-                firmware_version: '1.0',
-                is_connected: true,
-                last_sync: '2025-12-29T23:59:59Z',
-                real_time_tracking: true,
-                created_at: '2025-12-28T00:00:00Z',
-                updated_at: '2025-12-29T00:00:00Z'
-              }
-              setDevices(prev => [...prev.filter(d => d.id !== targetDeviceId), mockDev])
-            }
-            
-            mockDates.forEach(date => {
-              if (rangeFrom <= date && rangeTo >= date) {
-                // Heart Rate
-                if (!heart.some(h => h.device_id === targetDeviceId && h.timestamp.includes(date))) {
-                  const newHr = Array.from({ length: 24 }, (_, i) => ({
-                    id: `mock-hr-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    heart_rate: 135,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:00:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setHeartData(prev => [...prev.filter(h => !(h.device_id === targetDeviceId && h.timestamp.includes(date))), ...newHr])
-                }
-                // Steps
-                if (!steps.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
-                  const newSteps = Array.from({ length: 24 }, (_, i) => ({
-                    id: `mock-steps-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    steps: 902,
-                    calories: 40,
-                    distance: 650,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:30:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setStepsData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), ...newSteps])
-                }
-                // Oxygen
-                if (!oxygenData.some(o => o.device_id === targetDeviceId && o.timestamp.includes(date))) {
-                  const newOxygen = Array.from({ length: 24 }, (_, i) => ({
-                    id: `mock-o2-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    oxygen_saturation: 98,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:15:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setOxygenData(prev => [...prev.filter(o => !(o.device_id === targetDeviceId && o.timestamp.includes(date))), ...newOxygen])
-                }
-                // Pressure
-                if (!pressureData.some(p => p.device_id === targetDeviceId && p.timestamp.includes(date))) {
-                  const newPressure = Array.from({ length: 12 }, (_, i) => ({
-                    id: `mock-bp-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    systolic: 120 + Math.floor(Math.random() * 5),
-                    diastolic: 80 + Math.floor(Math.random() * 3),
-                    timestamp: `${date}T${String(i*2).padStart(2, '0')}:20:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setPressureData(prev => [...prev.filter(p => !(p.device_id === targetDeviceId && p.timestamp.includes(date))), ...newPressure])
-                }
-                // Sugar
-                if (!sugarData.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
-                  const newSugar = Array.from({ length: 8 }, (_, i) => ({
-                    id: `mock-sugar-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    blood_sugar: 95 + Math.floor(Math.random() * 10),
-                    timestamp: `${date}T${String(i*3).padStart(2, '0')}:45:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setSugarData(prev => [...prev.filter(s => !(s.device_id === targetDeviceId && s.timestamp.includes(date))), ...newSugar])
-                }
-                // Temp
-                if (!tempData.some(t => t.device_id === targetDeviceId && t.timestamp.includes(date))) {
-                  const newTemp = Array.from({ length: 24 }, (_, i) => ({
-                    id: `mock-temp-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    temperature: 36.5 + (Math.random() * 0.3),
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:50:00Z`,
-                    created_at: new Date().toISOString()
-                  }))
-                  setTempData(prev => [...prev.filter(t => !(t.device_id === targetDeviceId && t.timestamp.includes(date))), ...newTemp])
-                }
-              }
-            })
-          }
         } else if (active === 'ww-watch') {
-          setDevices(await getDevices())
+          const usrs = await getUsers()
+          console.log('Loaded users (ww-watch):', usrs.length, usrs)
+          setUsers(usrs)
         } else if (active === 'health-efficiency') {
-          // Fetch devices and metric slices for efficiency monitoring
-          const deviceFilter = selectedDevice === 'all' ? undefined : selectedDevice
+          // Fetch users and metric slices for efficiency monitoring
+          const userFilter = selectedUser === 'all' ? undefined : selectedUser
           const fromIso = rangeFrom ? `${rangeFrom}T${(rangeFromTime || '00:00')}:00Z` : undefined
           const toIso = rangeTo ? `${rangeTo}T${(rangeToTime || '23:59')}:59Z` : undefined
-          const [heart, steps, oxygen, pressure, sugar, temp, devs] = await Promise.all([
-            getHeartRateMetrics(undefined, deviceFilter, fromIso, toIso),
-            getStepsMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodOxygenMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodPressureMetrics(undefined, deviceFilter, fromIso, toIso),
-            getBloodSugarMetrics(undefined, deviceFilter, fromIso, toIso),
-            getTemperatureMetrics(undefined, deviceFilter, fromIso, toIso),
-            getDevices()
+          const [heart, steps, oxygen, pressure, sugar, usrs] = await Promise.all([
+            getHeartRateMetrics(userFilter, undefined, fromIso, toIso),
+            getStepsMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodOxygenMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodPressureMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodSugarMetrics(userFilter, undefined, fromIso, toIso),
+            getUsers()
           ])
-
-          // Inject mock data for 28.12.2025 and 29.12.2025
-          const targetDeviceId = '2b00d865-ee8a-57af-1cba-d2fcb094ba66'
-          const mockDates = ['2025-12-28', '2025-12-29']
-
-          // Ensure device exists
-          if (!devs.some(d => d.id === targetDeviceId)) {
-            devs.push({
-              id: targetDeviceId,
-              user_id: 'mock-user',
-              name: 'Fitness Device',
-              mac_address: '2B:00:D8:65:EE:8A',
-              model: 'Pro',
-              firmware_version: '1.0',
-              is_connected: true,
-              last_sync: '2025-12-29T23:59:59Z',
-              real_time_tracking: true,
-              created_at: '2025-12-28T00:00:00Z',
-              updated_at: '2025-12-29T00:00:00Z'
-            })
-          }
-
-          mockDates.forEach(date => {
-            if (rangeFrom <= date && rangeTo >= date) {
-              // Mock Heart Rate (30 records per day to ensure stable average)
-              if (!heart.some(h => h.device_id === targetDeviceId && h.timestamp.includes(date))) {
-                for (let i = 0; i < 24; i++) {
-                  heart.push({
-                    id: `mock-hr-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    heart_rate: 135,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:00:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-              // Mock Steps (30000 steps per day = ~1250 steps/hour)
-              // Mock Steps (902 steps per day = ~37 steps/hour)
-              if (!steps.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
-                for (let i = 0; i < 24; i++) {
-                  steps.push({
-                    id: `mock-steps-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    steps: 902,
-                    calories: 40,
-                    distance: 650,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:30:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-              // Other metrics (24 records each)
-              if (!oxygen.some(o => o.device_id === targetDeviceId && o.timestamp.includes(date))) {
-                for (let i = 0; i < 24; i++) {
-                  oxygen.push({
-                    id: `mock-o2-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    oxygen_saturation: 98,
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:15:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-              if (!pressure.some(p => p.device_id === targetDeviceId && p.timestamp.includes(date))) {
-                for (let i = 0; i < 12; i++) {
-                  pressure.push({
-                    id: `mock-bp-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    systolic: 120 + Math.floor(Math.random() * 5),
-                    diastolic: 80 + Math.floor(Math.random() * 3),
-                    timestamp: `${date}T${String(i*2).padStart(2, '0')}:20:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-              if (!sugar.some(s => s.device_id === targetDeviceId && s.timestamp.includes(date))) {
-                for (let i = 0; i < 8; i++) {
-                  sugar.push({
-                    id: `mock-sugar-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    blood_sugar: 95 + Math.floor(Math.random() * 10),
-                    timestamp: `${date}T${String(i*3).padStart(2, '0')}:45:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-              if (!temp.some(t => t.device_id === targetDeviceId && t.timestamp.includes(date))) {
-                for (let i = 0; i < 24; i++) {
-                  temp.push({
-                    id: `mock-temp-${date}-${i}`,
-                    user_id: 'mock-user',
-                    device_id: targetDeviceId,
-                    temperature: 44.5 + (Math.random() * 0.3),
-                    timestamp: `${date}T${String(i).padStart(2, '0')}:50:00Z`,
-                    created_at: new Date().toISOString()
-                  })
-                }
-              }
-            }
-          })
           
           setHeartData(heart)
           setStepsData(steps)
           setOxygenData(oxygen)
           setPressureData(pressure)
           setSugarData(sugar)
-          setTempData(temp.map(t => ({ ...t, temperature: t.temperature - 8 })))
-          setDevices(devs)
+          setUsers(usrs)
+          console.log('Loaded users (efficiency):', usrs.length, usrs)
         }
       } catch (err) {
         console.error('Error loading data:', err)
@@ -892,7 +659,7 @@ export default function Admin() {
     if (['health-all', 'ww-watch', 'health-efficiency'].includes(active)) {
       loadData()
     }
-  }, [active, selectedDevice, rangeFrom, rangeTo, rangeFromTime, rangeToTime, refreshTrigger])
+  }, [active, selectedUser, rangeFrom, rangeTo, rangeFromTime, rangeToTime, refreshTrigger])
 
   if (authLoading) return <div className="p-6">{t('loading')}</div>
   if (!user) return <Navigate to="/login" replace />
@@ -907,12 +674,11 @@ export default function Admin() {
           oxygenData={oxygenData}
           pressureData={pressureData}
           sugarData={sugarData}
-          tempData={tempData}
           stepsData={stepsData}
-          devices={devices}
+          users={users}
           loading={loading}
-          selectedDevice={selectedDevice}
-          setSelectedDevice={setSelectedDevice}
+          selectedUser={selectedUser}
+          setSelectedUser={setSelectedUser}
         />
       case 'health-efficiency':
         return (
@@ -942,19 +708,19 @@ export default function Admin() {
                   </div>
 
                   <div className="flex items-center gap-2 bg-background/50 p-2 rounded-md border">
-                    <label className="text-sm text-muted-foreground">{t('bracelet')}</label>
-                    <select value={selectedDevice} onChange={e => setSelectedDevice(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm min-w-[180px]">
-                      <option value="all">{t('allBracelets')}</option>
-                      {devices.map(d => (
-                        <option key={d.id} value={d.id}>{d.name} ({d.mac_address})</option>
+                    <label className="text-sm text-muted-foreground">{t('user')}</label>
+                    <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm min-w-[180px]">
+                      <option value="all">{t('allUsers')}</option>
+                      {users.map(u => (
+                        <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>
                       ))}
                     </select>
                   </div>
 
                   <button
                     onClick={() => {
-                      const rows = computeDeviceStats()
-                      exportDevicesToCsv(rows)
+                      const rows = computeUserStats()
+                      exportUsersToCsv(rows)
                     }}
                     className="inline-flex items-center gap-2 px-3 py-2 bg-white border rounded-md text-sm hover:bg-green-50"
                   >
@@ -974,7 +740,7 @@ export default function Admin() {
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('braceletsList')}</CardTitle>
+                <CardTitle>{t('usersList')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-auto">
@@ -982,22 +748,20 @@ export default function Admin() {
                     <thead>
                       <tr className="border-b">
                         <th className="text-left p-2">ID</th>
-                        <th className="text-left p-2">{t('deviceName')}</th>
-                        <th className="text-left p-2">—</th>
-                        
+                        <th className="text-left p-2">{t('fullName')}</th>
+                        <th className="text-left p-2">{t('email')}</th>
                         <th className="text-left p-2">{t('status')}</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* If we have real metrics, compute per-device stats */}
+                      {/* If we have real metrics, compute per-user stats */}
                       {(() => {
-                        const rows = computeDeviceStats()
+                        const rows = computeUserStats()
                         return rows.map(r => (
                           <tr key={r.id} className="border-b">
                             <td className="p-2 font-mono text-xs">{r.id}</td>
                             <td className="p-2">{r.name}</td>
-                            <td className="p-2">—</td>
-                            
+                            <td className="p-2">{r.email}</td>
                             <td className="p-2">
                               {r.status === 'efficient' ? (
                                 <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-bold">{t('efficient')}</span>
@@ -1016,75 +780,34 @@ export default function Admin() {
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('testWorkersList')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="overflow-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b">
-                        <th className="text-left p-2">ID</th>
-                        <th className="text-left p-2">{t('fullName')}</th>
-                        <th className="text-left p-2">{t('specialty')}</th>
-                        <th className="text-left p-2">{t('object')}</th>
-                        <th className="text-left p-2">{t('status')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {workersWithStatus.map(w => (
-                        <tr key={w.id} className="border-b">
-                          <td className="p-2 font-mono text-xs">{w.id}</td>
-                          <td className="p-2">{w.name}</td>
-                          <td className="p-2">{w.spec}</td>
-                          <td className="p-2">{mockObjects.find(o => o.id === w.objectId)?.name || '-'}</td>
-                          <td className="p-2">
-                            {w.isEfficient ? (
-                              <span className="inline-block px-2 py-1 rounded text-sm bg-green-100 text-green-800 font-bold">{t('efficient')}</span>
-                            ) : (
-                              <span className="inline-block px-2 py-1 rounded text-sm bg-red-100 text-red-800 font-bold">{t('inefficient')}</span>
-                            )}
-                            <div className="text-xs text-muted-foreground mt-1">{w.efficiency}%</div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
+            
           </div>
         )
       case 'ww-watch':
         return (
           <Card>
             <CardHeader>
-              <CardTitle>{t('wwWatch')}</CardTitle>
-              <CardDescription>{t('totalDevices')}: {devices.length}</CardDescription>
+              <CardTitle>{t('users')}</CardTitle>
+              <CardDescription>{t('totalUsers')}: {users.length}</CardDescription>
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-96">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left p-2">{t('deviceName')}</th>
-                      <th className="text-left p-2">{t('mac')}</th>
-                      <th className="text-left p-2">{t('status')}</th>
-                      <th className="text-left p-2">{t('lastSync')}</th>
+                      <th className="text-left p-2">{t('fullName')}</th>
+                      <th className="text-left p-2">{t('email')}</th>
+                      <th className="text-left p-2">{t('lastLogin')}</th>
+                      <th className="text-left p-2">{t('createdAt')}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {devices.map(row => (
+                    {users.map(row => (
                       <tr key={row.id} className="border-b hover:bg-muted/50">
-                        <td className="p-2 font-semibold">{row.name}</td>
-                        <td className="p-2 font-mono text-xs">{row.mac_address}</td>
-                        <td className="p-2">
-                          <span className={`px-2 py-1 rounded text-xs ${row.is_connected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                            {row.is_connected ? t('connected') : t('disconnected')}
-                          </span>
-                        </td>
-                        <td className="p-2">{formatDate(row.last_sync)}</td>
+                        <td className="p-2 font-semibold">{row.full_name}</td>
+                        <td className="p-2">{row.email}</td>
+                        <td className="p-2">{formatDate(row.last_login)}</td>
+                        <td className="p-2">{formatDate(row.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>

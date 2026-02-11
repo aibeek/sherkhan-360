@@ -3,9 +3,12 @@ import { supabase } from './supabase'
 // Типы данных
 export type User = {
   id: string
-  email?: string
-  name?: string
-  created_at?: string
+  full_name: string
+  email: string
+  profile_image_url?: string | null
+  created_at: string
+  last_login?: string | null
+  updated_at: string
 }
 
 export type Device = {
@@ -155,7 +158,16 @@ export async function getDevices(userId?: string) {
 }
 
 export async function getUsers() {
-  const { data, error } = await supabase.from('users').select('*')
-  if (error) throw error
-  return data
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('full_name', { ascending: true })
+  
+  if (error) {
+    console.error('Error fetching users:', error)
+    throw error
+  }
+  
+  console.log('Fetched users:', data?.length || 0, 'users')
+  return (data || []) as User[]
 }

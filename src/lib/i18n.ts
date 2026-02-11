@@ -37,6 +37,9 @@ export const translations = {
     healthMonitoring: 'Мониторинг здоровья',
     device: 'Устройство',
     allDevices: 'Все устройства',
+    user: 'Пользователь',
+    allUsers: 'Все пользователи',
+    usersCount: 'Пользователей',
     loading: 'Загрузка...',
     loadingData: 'Загрузка данных...',
     
@@ -70,6 +73,8 @@ export const translations = {
     mac: 'MAC',
     status: 'Статус',
     lastSync: 'Последняя синхр.',
+    lastLogin: 'Последний вход',
+    createdAt: 'Создан',
     connected: 'Подключено',
     disconnected: 'Отключено',
     
@@ -80,6 +85,7 @@ export const translations = {
     allBracelets: 'Все браслеты',
     export: 'Выгрузить',
     braceletsList: 'Список браслетов',
+    usersList: 'Список пользователей',
     testWorkersList: 'Список тестовых работников',
     efficient: 'Эффективный',
     medium: 'Средний',
@@ -124,6 +130,7 @@ export const translations = {
     // WW Watch
     wwWatch: 'Часы WW',
     totalDevices: 'Всего устройств',
+    totalUsers: 'Всего пользователей',
   },
   en: {
     // Navbar
@@ -163,6 +170,9 @@ export const translations = {
     healthMonitoring: 'Health Monitoring',
     device: 'Device',
     allDevices: 'All Devices',
+    user: 'User',
+    allUsers: 'All Users',
+    usersCount: 'Users',
     loading: 'Loading...',
     loadingData: 'Loading data...',
     
@@ -196,6 +206,8 @@ export const translations = {
     mac: 'MAC',
     status: 'Status',
     lastSync: 'Last Sync',
+    lastLogin: 'Last Login',
+    createdAt: 'Created At',
     connected: 'Connected',
     disconnected: 'Disconnected',
     
@@ -206,6 +218,7 @@ export const translations = {
     allBracelets: 'All Bracelets',
     export: 'Export',
     braceletsList: 'Bracelets List',
+    usersList: 'Users List',
     testWorkersList: 'Test Workers List',
     efficient: 'Efficient',
     medium: 'Medium',
@@ -250,6 +263,7 @@ export const translations = {
     // WW Watch
     wwWatch: 'WW Watch',
     totalDevices: 'Total devices',
+    totalUsers: 'Total users',
   }
 }
 
