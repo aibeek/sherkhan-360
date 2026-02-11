@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -415,54 +415,6 @@ export default function Admin() {
   const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0,10))
   const [rangeFromTime, setRangeFromTime] = useState<string>(() => '00:00')
   const [rangeToTime, setRangeToTime] = useState<string>(() => '23:59')
-
-  const monitoringSpec = useMemo(() => ({
-    specialties: [
-      { name: 'Бетонщик', hr0: 135, stepsPerHour: 1100 },
-      { name: 'Арматурщик', hr0: 130, stepsPerHour: 1000 },
-      { name: 'Каменщик', hr0: 125, stepsPerHour: 850 },
-      { name: 'Монтажник', hr0: 138, stepsPerHour: 1150 },
-      { name: 'Дорожный рабочий', hr0: 143, stepsPerHour: 1250 },
-      { name: 'Разнорабочий', hr0: 130, stepsPerHour: 1100 }
-    ]
-  }), [])
-
-  const mockObjects = useMemo(() => [
-    { id: 'o1', name: 'Akbulak Riviera', city: 'Астана'},
-    { id: 'o2', name: 'Europe City', city: 'Астана'},
-    { id: 'o3', name: 'Ellington Hills', city: 'Астана' },
-    { id: 'o4', name: 'The ONE', city: 'Астана'}
-  ], []) as any[]
-
-  const mockWorkers = useMemo(() => [
-    // efficient on o1
-    { id: 'w1', name: 'Иванов И.', spec: 'Бетонщик', avgHr: 140, stepsPerHour: 1050, objectId: 'o1' },
-    // not efficient on o1 (low steps / elevated HR)
-    { id: 'w2', name: 'Петров П.', spec: 'Арматурщик', avgHr: 150, stepsPerHour: 800, objectId: 'o1' },
-    // efficient on o2
-    { id: 'w3', name: 'Сидоров С.', spec: 'Каменщик', avgHr: 130, stepsPerHour: 870, objectId: 'o2' },
-    // not efficient on o3 (lower steps)
-    { id: 'w4', name: 'Кузнецов К.', spec: 'Монтажник', avgHr: 155, stepsPerHour: 900, objectId: 'o3' },
-    // efficient on o2
-    { id: 'w5', name: 'Морозов М.', spec: 'Дорожный рабочий', avgHr: 145, stepsPerHour: 1200, objectId: 'o2' },
-    // not efficient on o4 (high HR, low steps)
-    { id: 'w6', name: 'Новиков Н.', spec: 'Разнорабочий', avgHr: 160, stepsPerHour: 700, objectId: 'o4' }
-  ], [])
-
-  
-
-  // Compute per-worker efficiency and status
-  const workersWithStatus = useMemo(() => {
-    return mockWorkers.map(w => {
-      const spec = monitoringSpec.specialties.find(s => s.name === w.spec)
-      if (!spec) return { ...w, efficiency: 0, isEfficient: false }
-      const hrDiff = w.avgHr - spec.hr0
-      const hrScore = spec.hr0 ? Math.max(0, 100 - Math.abs(hrDiff) / spec.hr0 * 100) : 0
-      const stepsScore = spec.stepsPerHour ? Math.min(100, Math.round((w.stepsPerHour / spec.stepsPerHour) * 100)) : 0
-      const efficiency = Math.round((hrScore * 0.5) + (stepsScore * 0.5))
-      return { ...w, efficiency, isEfficient: efficiency >= 90 }
-    })
-  }, [mockWorkers, monitoringSpec])
 
   // Compute per-user stats from real metrics using new efficiency formula
   // E_bracelet = K_l × K_i × K_s
