@@ -1,0 +1,12 @@
+﻿Checking tables...
+Table "users": OK - 11 rows
+  Columns in users: id, full_name, email, profile_image_url, created_at, last_login, updated_at
+Table "profiles": OK - null rows
+  Error reading one row from profiles: Could not find the table 'public.profiles' in the schema cache
+Table "heart_rate_metrics": OK - 752 rows
+Table "blood_oxygen_metrics": OK - 671 rows
+Table "blood_pressure_metrics": OK - 1004 rows
+Table "blood_sugar_metrics": OK - 987 rows
+Table "steps_metrics": OK - 769 rows
+Table "temperature_metrics": OK - 665 rows
+Table "devices": OK - 16 rows
