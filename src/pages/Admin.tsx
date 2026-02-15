@@ -20,12 +20,14 @@ import {
   type User
 } from '@/lib/health-api'
 import { calculateBraceletEfficiency, type BraceletRecord, type ShiftConfig, type BraceletEfficiency } from '@/core'
+import { DatePicker } from '@/components/ui/date-picker'
+import { TimePicker24 } from '@/components/ui/time-picker-24'
 
 function formatDate(value?: string | null) {
   if (!value) return '—'
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString()
+  return d.toLocaleString(undefined, { hour12: false })
 }
 
 function formatTime24h(value: string) {
@@ -58,6 +60,7 @@ function Sidebar({ active, setActive }: { active: string; setActive: (v: string)
         {openHealth && (
           <div className="space-y-1">
             <NavItem icon={<WatchIcon />} label={t('efficiency')} active={active==='health-efficiency'} onClick={() => setActive('health-efficiency')} />
+            <NavItem icon={<WatchIcon />} label={t('efficiencyNew')} active={active==='efficiency-new'} onClick={() => setActive('efficiency-new')} />
             <NavItem icon={<HeartIcon />} label={t('health')} active={active==='health-all'} onClick={() => setActive('health-all')} />
           </div>
         )}
@@ -410,11 +413,14 @@ export default function Admin() {
   const [loading, setLoading] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  // --- Mock monitoring efficiency data (temporary) ---
-  const [rangeFrom, setRangeFrom] = useState<string>(() => new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString().slice(0,10))
-  const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0,10))
-  const [rangeFromTime, setRangeFromTime] = useState<string>(() => '00:00')
-  const [rangeToTime, setRangeToTime] = useState<string>(() => '23:59')
+  // Период для метрик: по умолчанию сегодня 00:00–23:59
+  const [rangeFrom, setRangeFrom] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [rangeTo, setRangeTo] = useState<string>(() => new Date().toISOString().slice(0, 10))
+  const [rangeFromTime, setRangeFromTime] = useState<string>('00:00')
+  const [rangeToTime, setRangeToTime] = useState<string>('23:59')
+
+  // Панель детализации: пользователь, по клику на строку в «Эффективность новая»
+  const [detailUser, setDetailUser] = useState<{ id: string; name: string } | null>(null)
 
   const monitoringSpec = useMemo(() => ({
     specialties: [
@@ -427,7 +433,7 @@ export default function Admin() {
     ]
   }), [])
 
-  const mockObjects = useMemo(() => [
+  const _mockObjects = useMemo(() => [
     { id: 'o1', name: 'Akbulak Riviera', city: 'Астана'},
     { id: 'o2', name: 'Europe City', city: 'Астана'},
     { id: 'o3', name: 'Ellington Hills', city: 'Астана' },
@@ -451,8 +457,8 @@ export default function Admin() {
 
   
 
-  // Compute per-worker efficiency and status
-  const workersWithStatus = useMemo(() => {
+  // Compute per-worker efficiency and status (reserved for future use)
+  const _workersWithStatus = useMemo(() => {
     return mockWorkers.map(w => {
       const spec = monitoringSpec.specialties.find(s => s.name === w.spec)
       if (!spec) return { ...w, efficiency: 0, isEfficient: false }
@@ -575,6 +581,110 @@ export default function Admin() {
     return rows
   }
 
+  // --- Новая методика эффективности (зоны по HR, SpO2, шаги; особые правила для KARTHICK) ---
+  const KARTHICK_USER_ID = '06bc3b6b-7db2-4e47-af7d-92c4dd8d83dd'
+  type Zone = 'green' | 'orange' | 'red'
+
+  function getHrZone(avgHr: number): Zone {
+    if (avgHr >= 85 && avgHr <= 110) return 'green'
+    if (avgHr >= 75 && avgHr < 85) return 'orange'
+    if (avgHr < 70) return 'red'
+    if (avgHr >= 70 && avgHr < 75) return 'orange'
+    return 'orange' // 111+ — выше нормы
+  }
+
+  function getSpo2Zone(avgSpo2: number): Zone {
+    if (avgSpo2 >= 96 && avgSpo2 <= 99) return 'green'
+    if (avgSpo2 >= 94 && avgSpo2 < 96) return 'orange'
+    return 'red' // < 94
+  }
+
+  function getStepsZone(totalSteps: number, userId: string): Zone {
+    const isKarthick = userId === KARTHICK_USER_ID
+    if (isKarthick) {
+      if (totalSteps >= 7000) return 'green'
+      if (totalSteps >= 3000 && totalSteps <= 6999) return 'orange'
+      return 'red'
+    }
+    if (totalSteps >= 9000) return 'green'
+    if (totalSteps >= 5000 && totalSteps <= 8999) return 'orange'
+    return 'red'
+  }
+
+  function getNewEfficiencyStatus(
+    hrZone: Zone,
+    spo2Zone: Zone,
+    stepsZone: Zone,
+    userId: string
+  ): 'efficient' | 'medium' | 'inefficient' {
+    const isKarthick = userId === KARTHICK_USER_ID
+    const zones = [hrZone, spo2Zone, stepsZone]
+    const greens = zones.filter(z => z === 'green').length
+    const oranges = zones.filter(z => z === 'orange').length
+    const reds = zones.filter(z => z === 'red').length
+
+    if (isKarthick) {
+      if (greens === 3) return 'efficient'
+      if (oranges >= 1 && reds === 0) return 'medium'
+      if (reds >= 1) return 'inefficient'
+      return 'medium'
+    }
+
+    // Эффективный: 2–3 зелёных, 0 красных, не более 1 оранжевого
+    if (greens >= 2 && reds === 0 && oranges <= 1) return 'efficient'
+    // Средне-эффективный: 1 зелёный, 1–2 оранжевых, не более 1 красного
+    if (greens >= 1 && reds <= 1 && oranges <= 2) return 'medium'
+    // Не эффективный: 2–3 красных ИЛИ нет зелёных
+    if (reds >= 2 || greens === 0) return 'inefficient'
+    return 'medium'
+  }
+
+  const computeNewEfficiencyStats = (): Array<{
+    id: string
+    name: string
+    email: string
+    hrZone: Zone
+    avgHr: number | null
+    spo2Zone: Zone
+    avgSpo2: number | null
+    stepsZone: Zone
+    totalSteps: number
+    status: 'efficient' | 'medium' | 'inefficient'
+  }> => {
+    const usrs = selectedUser === 'all' ? users : users.filter(u => u.id === selectedUser)
+    return usrs.map(u => {
+      const heartFor = heartData.filter(h => h.user_id === u.id)
+      const stepsFor = stepsData.filter(s => s.user_id === u.id)
+      const oxygenFor = oxygenData.filter(o => o.user_id === u.id)
+
+      const avgHr = heartFor.length
+        ? Math.round(heartFor.reduce((s, x) => s + x.heart_rate, 0) / heartFor.length)
+        : null
+      const totalSteps = stepsFor.reduce((s, x) => s + x.steps, 0)
+      const avgSpo2 = oxygenFor.length
+        ? Math.round(oxygenFor.reduce((s, x) => s + x.oxygen_saturation, 0) / oxygenFor.length)
+        : null
+
+      const hrZone = avgHr !== null ? getHrZone(avgHr) : 'red'
+      const spo2Zone = avgSpo2 !== null ? getSpo2Zone(avgSpo2) : 'red'
+      const stepsZone = getStepsZone(totalSteps, u.id)
+      const status = getNewEfficiencyStatus(hrZone, spo2Zone, stepsZone, u.id)
+
+      return {
+        id: u.id,
+        name: u.full_name,
+        email: u.email,
+        hrZone,
+        avgHr,
+        spo2Zone,
+        avgSpo2,
+        stepsZone,
+        totalSteps,
+        status
+      }
+    })
+  }
+
   // (kept worker export removed — using device export for real metrics)
 
   const exportUsersToCsv = (rows: any[]) => {
@@ -596,14 +706,13 @@ export default function Admin() {
     URL.revokeObjectURL(url)
   }
 
-  // Загрузка данных при переключении раздела
+  // Загрузка данных: при переключении вкладки/пользователя и по кнопке «Применить» (не при изменении даты/времени)
   useEffect(() => {
     async function loadData() {
       setLoading(true)
       try {
         if (active === 'health-all') {
           const userFilter = selectedUser === 'all' ? undefined : selectedUser
-          // Не фильтруем по дате для health-all - показываем все данные
           const fromIso = undefined
           const toIso = undefined
 
@@ -621,14 +730,11 @@ export default function Admin() {
           setSugarData(sugar)
           setStepsData(steps)
           setUsers(usrs)
-          console.log('Loaded users:', usrs.length, usrs)
 
         } else if (active === 'ww-watch') {
           const usrs = await getUsers()
-          console.log('Loaded users (ww-watch):', usrs.length, usrs)
           setUsers(usrs)
         } else if (active === 'health-efficiency') {
-          // Fetch users and metric slices for efficiency monitoring
           const userFilter = selectedUser === 'all' ? undefined : selectedUser
           const fromIso = rangeFrom ? `${rangeFrom}T${(rangeFromTime || '00:00')}:00Z` : undefined
           const toIso = rangeTo ? `${rangeTo}T${(rangeToTime || '23:59')}:59Z` : undefined
@@ -640,14 +746,26 @@ export default function Admin() {
             getBloodSugarMetrics(userFilter, undefined, fromIso, toIso),
             getUsers()
           ])
-          
           setHeartData(heart)
           setStepsData(steps)
           setOxygenData(oxygen)
           setPressureData(pressure)
           setSugarData(sugar)
           setUsers(usrs)
-          console.log('Loaded users (efficiency):', usrs.length, usrs)
+        } else if (active === 'efficiency-new') {
+          const userFilter = selectedUser === 'all' ? undefined : selectedUser
+          const fromIso = rangeFrom ? `${rangeFrom}T${(rangeFromTime || '00:00')}:00Z` : undefined
+          const toIso = rangeTo ? `${rangeTo}T${(rangeToTime || '23:59')}:59Z` : undefined
+          const [heart, steps, oxygen, usrs] = await Promise.all([
+            getHeartRateMetrics(userFilter, undefined, fromIso, toIso),
+            getStepsMetrics(userFilter, undefined, fromIso, toIso),
+            getBloodOxygenMetrics(userFilter, undefined, fromIso, toIso),
+            getUsers()
+          ])
+          setHeartData(heart)
+          setStepsData(steps)
+          setOxygenData(oxygen)
+          setUsers(usrs)
         }
       } catch (err) {
         console.error('Error loading data:', err)
@@ -655,11 +773,12 @@ export default function Admin() {
         setLoading(false)
       }
     }
-    
-    if (['health-all', 'ww-watch', 'health-efficiency'].includes(active)) {
+
+    if (['health-all', 'ww-watch', 'health-efficiency', 'efficiency-new'].includes(active)) {
       loadData()
     }
-  }, [active, selectedUser, rangeFrom, rangeTo, rangeFromTime, rangeToTime, refreshTrigger])
+    // Без rangeFrom/rangeTo/rangeFromTime/rangeToTime — загрузка только при открытии вкладки, смене пользователя или по кнопке «Применить»
+  }, [active, selectedUser, refreshTrigger])
 
   if (authLoading) return <div className="p-6">{t('loading')}</div>
   if (!user) return <Navigate to="/login" replace />
@@ -688,16 +807,15 @@ export default function Admin() {
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-3 bg-background/50 p-2 rounded-md border">
                     <span className="text-sm text-muted-foreground">{t('period')}</span>
-                    <div className="flex items-center gap-2">
-                      <input type="date" value={rangeFrom} onChange={e => setRangeFrom(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
-                      <input type="time" value={rangeFromTime} onChange={e => setRangeFromTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <DatePicker value={rangeFrom} onChange={setRangeFrom} placeholder={t('period')} className="min-w-[180px]" />
+                      <TimePicker24 value={rangeFromTime} onChange={setRangeFromTime} className="w-[100px]" />
                       <span className="text-sm text-muted-foreground">—</span>
-                      <input type="date" value={rangeTo} onChange={e => setRangeTo(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
-                      <input type="time" value={rangeToTime} onChange={e => setRangeToTime(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm" />
-                      
+                      <DatePicker value={rangeTo} onChange={setRangeTo} placeholder={t('period')} className="min-w-[180px]" />
+                      <TimePicker24 value={rangeToTime} onChange={setRangeToTime} className="w-[100px]" />
                       <button
                         onClick={() => setRefreshTrigger(prev => prev + 1)}
-                        className="ml-2 inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors shadow-sm"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors shadow-sm"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
@@ -783,6 +901,256 @@ export default function Admin() {
             
           </div>
         )
+      case 'efficiency-new': {
+        const newRows = computeNewEfficiencyStats()
+        const zoneClass = (z: Zone) =>
+          z === 'green' ? 'bg-green-100 text-green-800' : z === 'orange' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
+        const zoneLabel = (z: Zone) => (z === 'green' ? t('zoneGreen') : z === 'orange' ? t('zoneOrange') : t('zoneRed'))
+        const statusLabel = (s: 'efficient' | 'medium' | 'inefficient') =>
+          s === 'efficient' ? t('statusEfficientNew') : s === 'medium' ? t('statusMediumEfficientNew') : t('statusNotEfficientNew')
+        const statusClass = (s: 'efficient' | 'medium' | 'inefficient') =>
+          s === 'efficient' ? 'bg-green-100 text-green-800' : s === 'medium' ? 'bg-orange-100 text-orange-800' : 'bg-red-100 text-red-800'
+        return (
+          <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <h1 className="text-2xl font-bold">{t('efficiencyMonitoringNew')}</h1>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-3 bg-background/50 p-2 rounded-md border">
+                  <span className="text-sm text-muted-foreground">{t('period')}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <DatePicker value={rangeFrom} onChange={setRangeFrom} placeholder={t('period')} className="min-w-[180px]" />
+                    <TimePicker24 value={rangeFromTime} onChange={setRangeFromTime} className="w-[100px]" />
+                    <span className="text-sm text-muted-foreground">—</span>
+                    <DatePicker value={rangeTo} onChange={setRangeTo} placeholder={t('period')} className="min-w-[180px]" />
+                    <TimePicker24 value={rangeToTime} onChange={setRangeToTime} className="w-[100px]" />
+                    <button
+                      onClick={() => setRefreshTrigger(prev => prev + 1)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-semibold hover:bg-brand/90 transition-colors shadow-sm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      {t('apply')}
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 bg-background/50 p-2 rounded-md border">
+                  <label className="text-sm text-muted-foreground">{t('user')}</label>
+                  <select value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="px-3 py-2 border rounded-md bg-white text-sm min-w-[180px]">
+                    <option value="all">{t('allUsers')}</option>
+                    {users.map(u => (
+                      <option key={u.id} value={u.id}>{u.full_name} ({u.email})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('usersList')}</CardTitle>
+                <div className="mt-2 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  <p className="mb-3 text-foreground/90">
+                    Метрики считаются за выбранный период. Нажмите на строку пользователя, чтобы открыть все записи.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="rounded-md bg-background/80 p-3 shadow-sm">
+                      <div className="mb-1.5 font-medium text-foreground">Пульс (среднее)</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">85–110</span>
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">75–84</span>
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">&lt;70</span>
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-background/80 p-3 shadow-sm">
+                      <div className="mb-1.5 font-medium text-foreground">SpO2 (среднее, %)</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">96–99</span>
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">94–95</span>
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">&lt;94</span>
+                      </div>
+                    </div>
+                    <div className="rounded-md bg-background/80 p-3 shadow-sm sm:col-span-2 lg:col-span-1">
+                      <div className="mb-1.5 font-medium text-foreground">Шаги (сумма за период)</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">9000+</span>
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/40 dark:text-orange-300">5000–8999</span>
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/40 dark:text-red-300">&lt;4999</span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-muted-foreground">KARTHICK: 7000+ / 3000–6999 / &lt;2999</p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">ID</th>
+                        <th className="text-left p-2">{t('fullName')}</th>
+                        <th className="text-left p-2">{t('email')}</th>
+                        <th className="text-left p-2">{t('heartRate')}</th>
+                        <th className="text-left p-2">{t('oxygen')}</th>
+                        <th className="text-left p-2" title={t('stepsSumPeriod')}>{t('steps')} (Σ)</th>
+                        <th className="text-left p-2">{t('status')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {newRows.map(r => (
+                        <tr
+                          key={r.id}
+                          onClick={() => setDetailUser({ id: r.id, name: r.name })}
+                          className="border-b cursor-pointer transition-colors hover:bg-muted/60 active:bg-muted"
+                        >
+                          <td className="p-2 font-mono text-xs">{r.id}</td>
+                          <td className="p-2 font-medium">{r.name}</td>
+                          <td className="p-2 text-muted-foreground">{r.email}</td>
+                          <td className="p-2">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${zoneClass(r.hrZone)}`}>
+                              {r.avgHr !== null ? `${r.avgHr} ${t('bpm')}` : t('noData')} — {zoneLabel(r.hrZone)}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${zoneClass(r.spo2Zone)}`}>
+                              {r.avgSpo2 !== null ? `${r.avgSpo2}%` : t('noData')} — {zoneLabel(r.spo2Zone)}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${zoneClass(r.stepsZone)}`}>
+                              {r.totalSteps} — {zoneLabel(r.stepsZone)}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${statusClass(r.status)}`}>
+                              {statusLabel(r.status)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Панель детализации: все метрики выбранного пользователя */}
+            {detailUser && (
+              <>
+                <div
+                  className="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm"
+                  aria-hidden
+                  onClick={() => setDetailUser(null)}
+                />
+                <div className="fixed top-0 right-0 bottom-0 w-full max-w-lg bg-background border-l shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
+                  <div className="p-4 border-b bg-muted/30 flex items-center justify-between shrink-0">
+                    <div>
+                      <h2 className="text-lg font-semibold">{detailUser.name}</h2>
+                      <p className="text-sm text-muted-foreground mt-0.5">
+                        {t('period')}: {rangeFrom} {rangeFromTime} — {rangeTo} {rangeToTime}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDetailUser(null)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors"
+                      aria-label="Закрыть"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                  <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-6">
+                      {/* Пульс */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-red-50/50 dark:bg-red-950/20 border-b">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center text-red-600 dark:text-red-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            </span>
+                            {t('heartRate')}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ul className="divide-y max-h-48 overflow-y-auto">
+                            {heartData
+                              .filter(h => h.user_id === detailUser.id)
+                              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                              .map(h => (
+                                <li key={h.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground font-mono">{formatTime24h(h.timestamp)}</span>
+                                  <span className="font-semibold text-red-600 dark:text-red-400">{h.heart_rate} {t('bpm')}</span>
+                                </li>
+                              ))}
+                            {heartData.filter(h => h.user_id === detailUser.id).length === 0 && (
+                              <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t('noData')}</li>
+                            )}
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      {/* Кислород */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-blue-50/50 dark:bg-blue-950/20 border-b">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6M8 12h8"/></svg>
+                            </span>
+                            {t('oxygen')}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ul className="divide-y max-h-48 overflow-y-auto">
+                            {oxygenData
+                              .filter(o => o.user_id === detailUser.id)
+                              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                              .map(o => (
+                                <li key={o.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground font-mono">{formatTime24h(o.timestamp)}</span>
+                                  <span className="font-semibold text-blue-600 dark:text-blue-400">{o.oxygen_saturation}%</span>
+                                </li>
+                              ))}
+                            {oxygenData.filter(o => o.user_id === detailUser.id).length === 0 && (
+                              <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t('noData')}</li>
+                            )}
+                          </ul>
+                        </CardContent>
+                      </Card>
+
+                      {/* Шаги */}
+                      <Card className="overflow-hidden">
+                        <CardHeader className="py-3 px-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-b">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <span className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20"/></svg>
+                            </span>
+                            {t('steps')}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <ul className="divide-y max-h-48 overflow-y-auto">
+                            {stepsData
+                              .filter(s => s.user_id === detailUser.id)
+                              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                              .map(s => (
+                                <li key={s.id} className="px-4 py-2.5 flex items-center justify-between text-sm">
+                                  <span className="text-muted-foreground font-mono">{formatTime24h(s.timestamp)}</span>
+                                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">{s.steps} {t('stepsUnit')}</span>
+                                </li>
+                              ))}
+                            {stepsData.filter(s => s.user_id === detailUser.id).length === 0 && (
+                              <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t('noData')}</li>
+                            )}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </ScrollArea>
+                </div>
+              </>
+            )}
+          </div>
+        )
+      }
       case 'ww-watch':
         return (
           <Card>

@@ -306,7 +306,7 @@ export default function HealthDashboard() {
                     <td className="p-2 font-mono text-xs">{row.id.slice(0, 8)}...</td>
                     <td className="p-2 font-mono text-xs">{row.user_id.slice(0, 8)}...</td>
                     <td className="p-2">{row.oxygen_saturation}%</td>
-                    <td className="p-2">{new Date(row.timestamp).toLocaleString()}</td>
+                    <td className="p-2">{new Date(row.timestamp).toLocaleString(undefined, { hour12: false })}</td>
                   </tr>
                 ))}
               </tbody>
